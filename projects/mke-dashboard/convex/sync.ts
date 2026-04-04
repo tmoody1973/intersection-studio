@@ -23,6 +23,7 @@ import {
   aggregateForNeighborhood,
 } from "./etl/census";
 import { fetchCommunityResources } from "./etl/community";
+import { fetchPropertySales, fetchLiquorLicenses } from "./etl/economic";
 
 /**
  * DCD neighborhood names (uppercase, matching the boundaries layer).
@@ -157,15 +158,16 @@ export const syncNeighborhood = internalAction({
         console.error("Community resources fetch failed:", e);
       }
 
-      // 10. Census tracts + ZIP codes in this neighborhood
+      // 10. Census tracts + ZIP codes + taxkeys in this neighborhood
       let censusTracts: string | undefined;
       let neighborhoodZips: string[] = [];
       let tractCodes: string[] = [];
+      let neighborhoodTaxkeys = new Set<string>();
       try {
         const tractRecords = await spatialFeatures(
           ENDPOINTS.mprop,
           "GEO_TRACT IS NOT NULL",
-          "GEO_TRACT,GEO_ZIP_CODE",
+          "GEO_TRACT,GEO_ZIP_CODE,TAXKEY",
           envelope,
           5000,
         );
@@ -179,6 +181,11 @@ export const syncNeighborhood = internalAction({
               .filter((z) => z.length >= 5),
           ),
         ];
+        neighborhoodTaxkeys = new Set(
+          tractRecords
+            .map((r) => String(r.TAXKEY ?? ""))
+            .filter((t) => t.length > 0),
+        );
         censusTracts = JSON.stringify(tractCodes);
       } catch {
         censusTracts = undefined;
@@ -270,7 +277,31 @@ export const syncNeighborhood = internalAction({
         console.error("Traffic crash CSV fetch failed:", e);
       }
 
-      // 11. Upsert with ALL data sources
+      // 11. Economic data (taxkey-based joins)
+      let propertySalesCount: number | undefined;
+      let medianSalePrice: number | undefined;
+      let totalSalesVolume: number | undefined;
+      let liquorLicenseCount: number | undefined;
+      try {
+        if (neighborhoodTaxkeys.size > 0) {
+          const sales = await fetchPropertySales(neighborhoodTaxkeys);
+          propertySalesCount = sales.totalSales || undefined;
+          medianSalePrice = sales.medianSalePrice ?? undefined;
+          totalSalesVolume = sales.totalVolume || undefined;
+        }
+      } catch (e) {
+        console.error("Property sales fetch failed:", e);
+      }
+      try {
+        if (neighborhoodTaxkeys.size > 0) {
+          const licenses = await fetchLiquorLicenses(neighborhoodTaxkeys);
+          liquorLicenseCount = licenses.totalLicenses || undefined;
+        }
+      } catch (e) {
+        console.error("Liquor licenses fetch failed:", e);
+      }
+
+      // 12. Upsert with ALL data sources
       await ctx.runMutation(internal.sync.upsertNeighborhood, {
         name,
         slug,
@@ -306,6 +337,11 @@ export const syncNeighborhood = internalAction({
         // EMS / Safety
         overdoseCount,
         trafficCrashCount,
+        // Economic
+        propertySalesCount,
+        medianSalePrice,
+        totalSalesVolume,
+        liquorLicenseCount,
         // Community Resources
         libraryCount: community.libraryCount || undefined,
         parkCount: community.parkCount || undefined,
@@ -361,6 +397,11 @@ export const upsertNeighborhood = internalMutation({
     foreclosureBankCount: v.optional(v.number()),
     housingAge: v.optional(v.string()),
     censusTracts: v.optional(v.string()),
+    // Economic
+    propertySalesCount: v.optional(v.number()),
+    medianSalePrice: v.optional(v.number()),
+    totalSalesVolume: v.optional(v.number()),
+    liquorLicenseCount: v.optional(v.number()),
     // Community Resources
     libraryCount: v.optional(v.number()),
     parkCount: v.optional(v.number()),

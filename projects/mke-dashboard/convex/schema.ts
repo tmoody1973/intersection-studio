@@ -54,6 +54,12 @@ export default defineSchema({
     raceBreakdown: v.optional(v.string()), // JSON
     medianHomeValue: v.optional(v.number()),
 
+    // Economic / Housing
+    propertySalesCount: v.optional(v.number()),
+    medianSalePrice: v.optional(v.number()),
+    totalSalesVolume: v.optional(v.number()),
+    liquorLicenseCount: v.optional(v.number()),
+
     // Community Resources
     libraryCount: v.optional(v.number()),
     parkCount: v.optional(v.number()),

@@ -31,6 +31,9 @@ const METRIC_LABELS: Record<string, { label: string; unit: string }> = {
   foreclosures_bank: { label: "foreclosuresBank", unit: "parcels" },
   service_requests_311: { label: "serviceRequests311", unit: "parcels" },
   building_permits: { label: "buildingPermits", unit: "parcels" },
+  property_sales: { label: "propertySales", unit: "parcels" },
+  median_sale_price: { label: "medianSalePrice", unit: "dollars" },
+  liquor_licenses: { label: "liquorLicenses", unit: "parcels" },
   poverty_rate: { label: "povertyRate", unit: "percent" },
   unemployment: { label: "unemployment", unit: "percent" },
   median_home_value: { label: "medianHomeValue", unit: "dollars" },
@@ -169,6 +172,15 @@ export function useNeighborhoodData(slug: string) {
 
     if (neighborhood.buildingPermitCount != null && neighborhood.buildingPermitCount > 0)
       add("building_permits", "Building Permits", neighborhood.buildingPermitCount, "permits", "qualityOfLife", "Building Permits CSV");
+
+    if (neighborhood.propertySalesCount != null && neighborhood.propertySalesCount > 0)
+      add("property_sales", "Property Sales (2024)", neighborhood.propertySalesCount, "sales", "qualityOfLife", "Property Sales CKAN");
+
+    if (neighborhood.medianSalePrice != null)
+      add("median_sale_price", "Median Sale Price", neighborhood.medianSalePrice, "dollars", "qualityOfLife", "Property Sales CKAN");
+
+    if (neighborhood.liquorLicenseCount != null && neighborhood.liquorLicenseCount > 0)
+      add("liquor_licenses", "Liquor Licenses", neighborhood.liquorLicenseCount, "licenses", "qualityOfLife", "Liquor Licenses CKAN");
 
     // --- Wellness ---
     if (neighborhood.povertyRate != null)
