@@ -19,20 +19,32 @@ export default defineSchema({
     ownerOccupiedRate: v.optional(v.number()),
     medianAssessedValue: v.optional(v.number()),
 
-    // Public Safety metrics
-    part1CrimeCount: v.optional(v.number()),
-    part1CrimeByType: v.optional(v.string()), // JSON: {"Assault": 45, "Theft": 120, ...}
+    // Public Safety metrics (from WIBR CSV + ArcGIS)
+    crimeTotal: v.optional(v.number()),
+    crimeViolent: v.optional(v.number()),
+    crimeProperty: v.optional(v.number()),
+    crimeByType: v.optional(v.string()), // JSON: {"Theft": 120, "Assault": 45, ...}
+    crimeByMonth: v.optional(v.string()), // JSON: {"2026-01": 30, "2026-02": 25, ...}
+    part1CrimeCount: v.optional(v.number()), // Legacy (ArcGIS MPD Monthly)
+    part1CrimeByType: v.optional(v.string()), // Legacy
     crimeYoYChange: v.optional(v.number()),
     fireIncidentCount: v.optional(v.number()),
+    overdoseCount: v.optional(v.number()),
+    trafficCrashCount: v.optional(v.number()),
 
     // Quality of Life metrics
     vacantBuildingCount: v.optional(v.number()),
-    vacantLandCount: v.optional(v.number()), // C_A_CLASS = '5' per neighborhood
+    vacantLandCount: v.optional(v.number()),
     taxDelinquentCount: v.optional(v.number()),
     foreclosureCityCount: v.optional(v.number()),
     foreclosureBankCount: v.optional(v.number()),
     avgAssessedValue: v.optional(v.number()),
-    housingAge: v.optional(v.string()), // JSON: {"1920s": 450, "1930s": 300, ...}
+    housingAge: v.optional(v.string()),
+    serviceRequests311: v.optional(v.number()),
+    serviceRequestsByType: v.optional(v.string()), // JSON
+    serviceRequestsByMonth: v.optional(v.string()), // JSON
+    buildingPermitCount: v.optional(v.number()),
+    buildingPermitsByType: v.optional(v.string()), // JSON
 
     // Demographics (Census ACS, by tract → aggregated)
     population: v.optional(v.number()),

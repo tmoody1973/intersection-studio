@@ -6,13 +6,27 @@ const ARCGIS_BASE =
   "https://milwaukeemaps.milwaukee.gov/arcgis/rest/services";
 
 export const ARCGIS_URLS = {
+  // Property
   mprop: `${ARCGIS_BASE}/property/parcels_mprop/MapServer/2`,
   foreclosedCityOwned: `${ARCGIS_BASE}/property/foreclosed_properties/MapServer/13`,
   foreclosedBankOwned: `${ARCGIS_BASE}/property/foreclosed_properties/MapServer/23`,
   governmentOwned: `${ARCGIS_BASE}/property/govt_owned/MapServer`,
+  parks: `${ARCGIS_BASE}/property/parcels_mprop/MapServer/16`,
+  schools: `${ARCGIS_BASE}/property/parcels_mprop/MapServer/18`,
+  // Public Safety
   crimeMonthly: `${ARCGIS_BASE}/MPD/MPD_Monthly/MapServer`,
+  policeStations: `${ARCGIS_BASE}/MPD/MPD_stations/MapServer/0`,
+  policeDistricts: `${ARCGIS_BASE}/MPD/MPD_geography/MapServer/2`,
+  firehouses: `${ARCGIS_BASE}/MFD/MFD_RiskReduction/MapServer/0`,
+  // Planning
   neighborhoods: `${ARCGIS_BASE}/planning/special_districts/MapServer/4`,
+  zoning: `${ARCGIS_BASE}/planning/zoning/MapServer/11`,
+  // Quality of Life
   strongNeighborhoods: `${ARCGIS_BASE}/StrongNeighborhood/StrongNeighborhood/MapServer/0`,
+  // Community
+  libraries: `${ARCGIS_BASE}/AGO/LibraryServices/MapServer/0`,
+  liquorLicenses: `${ARCGIS_BASE}/regulation/license/MapServer/0`,
+  // DPW
   dpwForestry: `${ARCGIS_BASE}/DPW/DPW_forestry/MapServer`,
   dpwOperations: `${ARCGIS_BASE}/DPW/DPW_Operations/MapServer`,
   dpwSanitation: `${ARCGIS_BASE}/DPW/DPW_Sanitation/MapServer`,
@@ -22,6 +36,31 @@ export const ARCGIS_URLS = {
 } as const;
 
 export const OPEN_DATA_BASE = "https://data.milwaukee.gov";
+
+// --- CSV Direct Download URLs (from data.milwaukee.gov) ---
+
+export const CSV_URLS = {
+  /** WIBR Crime Data — daily, incident-level with lat/lng */
+  crimeCurrent: "https://data.milwaukee.gov/dataset/e5feaad3-ee73-418c-b65d-ef810c199390/resource/87843297-a6fa-46d4-ba5d-cb342fb2d3bb/download/wibr.csv",
+  /** 311 Service Requests — daily, with lat/lng */
+  callCenter: "https://data.milwaukee.gov/dataset/a418ffb4-ce90-4a11-a489-d256a3e68a8b/resource/bf2b508a-5bfa-49da-8846-d87ffeee020a/download/callcenterdatacurrent.csv",
+  /** Accela Vacant Buildings — weekly */
+  vacantBuildings: "https://data.milwaukee.gov/dataset/a9d52246-c06e-4ec2-a58e-a53ea0a72ded/resource/46dca88b-fec0-48f1-bda6-7296249ea61f/download/accelavacantbuilding.csv",
+  /** Building Permits — daily */
+  buildingPermits: "https://data.milwaukee.gov/dataset/9bada2e0-fad5-4545-8674-1b2c8c4e9f2f/resource/828e9630-d7cb-42e4-960e-964eae916397/download/buildingpermits.csv",
+  /** EMS Calls — for overdose filtering */
+  emsCalls: "https://data.milwaukee.gov/dataset/1a8bef50-1253-45f0-8a4e-86f7bf515240/resource/06fd2a64-4348-461a-bda4-5e09b2500615/download/mfdopendataems.csv",
+  /** Fire Calls detail */
+  fireCalls: "https://data.milwaukee.gov/dataset/8735b4c2-4298-44d0-84c2-b734be52e30d/resource/cdf51c45-5fe3-415e-a08c-14ed134dcb64/download/mfdopendatafire.csv",
+  /** Traffic Crashes */
+  trafficCrashes: "https://data.milwaukee.gov/dataset/5fafe01d-dc55-4a41-8760-8ae52f7855f1/resource/8fffaa3a-b500-4561-8898-78a424bdacee/download/trafficaccident.csv",
+  /** Liquor Licenses */
+  liquorLicenses: "https://data.milwaukee.gov/dataset/1aba8821-f5f6-4031-b469-5c39c90e99c7/resource/45c027b5-fa66-4de2-aa7e-d9314292093d/download/liquorlicenses.csv",
+  /** Library Locations */
+  libraries: "https://data.milwaukee.gov/dataset/1b984aba-5cc1-47e3-8c64-999b6d26ceb6/resource/0590052a-6dd5-4cc1-a473-fd60eb00402b/download/librarylocations.csv",
+  /** Delinquent Tax */
+  delinquentTax: "https://data.milwaukee.gov/dataset/f376a61a-b279-4ff5-b6da-776a3df14ca0",
+} as const;
 
 // --- Map Defaults ---
 

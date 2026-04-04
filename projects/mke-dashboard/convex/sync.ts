@@ -10,6 +10,14 @@ import {
   buildEnvelopeFromGeoJSON,
   type Envelope,
 } from "./etl/arcgis";
+import {
+  fetchCrimeData,
+  fetch311Data,
+  fetchVacantBuildingData,
+  fetchPermitData,
+  fetchOverdoseCount,
+  fetchTrafficCrashCount,
+} from "./etl/csv";
 
 /**
  * DCD neighborhood names (uppercase, matching the boundaries layer).
@@ -154,25 +162,105 @@ export const syncNeighborhood = internalAction({
         censusTracts = undefined;
       }
 
-      // 10. Upsert
+      // 10. CSV Data Sources (daily updated, point-in-envelope)
+      // Each wrapped in try/catch — CSV failures don't break the sync
+
+      let crimeData: { total?: number; violent?: number; property?: number; byType?: string; byMonth?: string } = {};
+      try {
+        const crime = await fetchCrimeData(envelope);
+        crimeData = {
+          total: crime.total,
+          violent: crime.violent,
+          property: crime.property,
+          byType: JSON.stringify(crime.byType),
+          byMonth: JSON.stringify(crime.byMonth),
+        };
+      } catch (e) {
+        console.error("Crime CSV fetch failed:", e);
+      }
+
+      let serviceRequests: { total?: number; byType?: string; byMonth?: string } = {};
+      try {
+        const sr = await fetch311Data(envelope);
+        serviceRequests = {
+          total: sr.total,
+          byType: JSON.stringify(sr.byType),
+          byMonth: JSON.stringify(sr.byMonth),
+        };
+      } catch (e) {
+        console.error("311 CSV fetch failed:", e);
+      }
+
+      let csvVacantCount: number | undefined;
+      try {
+        const vb = await fetchVacantBuildingData(envelope);
+        csvVacantCount = vb.total;
+      } catch (e) {
+        console.error("Vacant buildings CSV fetch failed:", e);
+      }
+
+      let permitData: { total?: number; byType?: string } = {};
+      try {
+        const permits = await fetchPermitData(envelope);
+        permitData = {
+          total: permits.total,
+          byType: JSON.stringify(permits.byType),
+        };
+      } catch (e) {
+        console.error("Permits CSV fetch failed:", e);
+      }
+
+      let overdoseCount: number | undefined;
+      try {
+        overdoseCount = await fetchOverdoseCount(envelope);
+      } catch (e) {
+        console.error("EMS/overdose CSV fetch failed:", e);
+      }
+
+      let trafficCrashCount: number | undefined;
+      try {
+        trafficCrashCount = await fetchTrafficCrashCount(envelope);
+      } catch (e) {
+        console.error("Traffic crash CSV fetch failed:", e);
+      }
+
+      // 11. Upsert with ALL data sources
       await ctx.runMutation(internal.sync.upsertNeighborhood, {
         name,
         slug,
         boundaryGeoJson,
         envelopeJson: JSON.stringify(envelope),
+        // MPROP (ArcGIS spatial)
         totalProperties,
         ownerOccupiedCount,
         ownerOccupiedRate,
         medianAssessedValue: avgAssessedValue ?? undefined,
         avgAssessedValue: avgAssessedValue ?? undefined,
         vacantLandCount,
-        vacantBuildingCount,
+        vacantBuildingCount: csvVacantCount ?? vacantBuildingCount,
         foreclosureCityCount,
         foreclosureBankCount,
-        part1CrimeCount,
-        part1CrimeByType: JSON.stringify(crimeByType),
         housingAge,
         censusTracts,
+        // Crime (WIBR CSV — more detailed than ArcGIS MPD)
+        crimeTotal: crimeData.total,
+        crimeViolent: crimeData.violent,
+        crimeProperty: crimeData.property,
+        crimeByType: crimeData.byType,
+        crimeByMonth: crimeData.byMonth,
+        part1CrimeCount, // Keep ArcGIS crime as fallback
+        part1CrimeByType: JSON.stringify(crimeByType),
+        // 311 Service Requests
+        serviceRequests311: serviceRequests.total,
+        serviceRequestsByType: serviceRequests.byType,
+        serviceRequestsByMonth: serviceRequests.byMonth,
+        // Building Permits
+        buildingPermitCount: permitData.total,
+        buildingPermitsByType: permitData.byType,
+        // EMS / Safety
+        overdoseCount,
+        trafficCrashCount,
+        // Sync
         lastSyncAt: Date.now(),
         lastSyncStatus: "success",
       });
@@ -202,19 +290,38 @@ export const upsertNeighborhood = internalMutation({
     slug: v.string(),
     boundaryGeoJson: v.optional(v.string()),
     envelopeJson: v.optional(v.string()),
+    // MPROP
     totalProperties: v.optional(v.number()),
     ownerOccupiedCount: v.optional(v.number()),
     ownerOccupiedRate: v.optional(v.number()),
     medianAssessedValue: v.optional(v.number()),
-    part1CrimeCount: v.optional(v.number()),
-    part1CrimeByType: v.optional(v.string()),
-    vacantBuildingCount: v.optional(v.number()),
+    avgAssessedValue: v.optional(v.number()),
     vacantLandCount: v.optional(v.number()),
+    vacantBuildingCount: v.optional(v.number()),
     foreclosureCityCount: v.optional(v.number()),
     foreclosureBankCount: v.optional(v.number()),
-    avgAssessedValue: v.optional(v.number()),
     housingAge: v.optional(v.string()),
     censusTracts: v.optional(v.string()),
+    // Crime (WIBR CSV)
+    crimeTotal: v.optional(v.number()),
+    crimeViolent: v.optional(v.number()),
+    crimeProperty: v.optional(v.number()),
+    crimeByType: v.optional(v.string()),
+    crimeByMonth: v.optional(v.string()),
+    // Crime (ArcGIS MPD — legacy/fallback)
+    part1CrimeCount: v.optional(v.number()),
+    part1CrimeByType: v.optional(v.string()),
+    // 311 Service Requests
+    serviceRequests311: v.optional(v.number()),
+    serviceRequestsByType: v.optional(v.string()),
+    serviceRequestsByMonth: v.optional(v.string()),
+    // Building Permits
+    buildingPermitCount: v.optional(v.number()),
+    buildingPermitsByType: v.optional(v.string()),
+    // EMS / Safety
+    overdoseCount: v.optional(v.number()),
+    trafficCrashCount: v.optional(v.number()),
+    // Sync
     lastSyncAt: v.number(),
     lastSyncStatus: v.string(),
   },

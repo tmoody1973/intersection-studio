@@ -10,6 +10,7 @@
 
 import type * as crons from "../crons.js";
 import type * as etl_arcgis from "../etl/arcgis.js";
+import type * as etl_csv from "../etl/csv.js";
 import type * as neighborhoods from "../neighborhoods.js";
 import type * as sync from "../sync.js";
 
@@ -22,6 +23,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   "etl/arcgis": typeof etl_arcgis;
+  "etl/csv": typeof etl_csv;
   neighborhoods: typeof neighborhoods;
   sync: typeof sync;
 }>;
