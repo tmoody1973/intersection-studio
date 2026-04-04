@@ -109,13 +109,13 @@ export const syncNeighborhood = internalAction({
         totalProperties,
         ownerOccupiedCount,
         ownerOccupiedRate,
-        medianAssessedValue: avgAssessedValue, // Using avg as proxy until we compute true median
+        medianAssessedValue: avgAssessedValue ?? undefined,
         part1CrimeCount,
         part1CrimeByType: JSON.stringify(crimeByType),
         vacantBuildingCount,
         foreclosureCityCount,
         foreclosureBankCount,
-        avgAssessedValue,
+        avgAssessedValue: avgAssessedValue ?? undefined,
         lastSyncAt: Date.now(),
         lastSyncStatus: "success",
       });
