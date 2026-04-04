@@ -25,7 +25,7 @@ export function Header() {
           </span>
           {isLoaded && !isSignedIn && (
             <SignInButton mode="modal">
-              <button className="rounded-lg bg-lakeshore px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-lakeshore/90">
+              <button className="rounded-lg bg-lakeshore px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-lakeshore/90 min-h-[44px]">
                 {t("signIn")}
               </button>
             </SignInButton>
