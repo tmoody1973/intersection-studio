@@ -6,6 +6,7 @@ import { CopilotSidebar } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 import { MetricsPanel } from "./MetricsPanel";
 import { DashboardContext } from "@/copilot/DashboardContext";
+import { DashboardTools } from "@/copilot/DashboardTools";
 import { useNeighborhoodData } from "@/hooks/useNeighborhoodData";
 import { TARGET_NEIGHBORHOODS } from "@/lib/constants";
 import type { CategoryId } from "@/types/metrics";
@@ -48,6 +49,9 @@ export function DashboardShell() {
         onSwitchNeighborhood={setSelectedSlug}
         onSwitchCategory={setActiveCategory}
       />
+
+      {/* Register Generative UI tools with CopilotKit */}
+      <DashboardTools />
 
       <div className="mx-auto w-full max-w-7xl">
         {/* Neighborhood selector + HOLC toggle */}
