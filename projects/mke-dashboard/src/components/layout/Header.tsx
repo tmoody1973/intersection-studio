@@ -1,6 +1,7 @@
 "use client";
 
 import { SignInButton, SignOutButton, UserButton, useUser } from "@clerk/nextjs";
+import { LanguageSelector } from "@/components/ui/LanguageSelector";
 import { TARGET_NEIGHBORHOODS } from "@/lib/constants";
 
 export function Header() {
@@ -19,6 +20,7 @@ export function Header() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          <LanguageSelector />
           <span className="hidden text-xs text-limestone sm:block">
             {TARGET_NEIGHBORHOODS.length} neighborhoods
           </span>

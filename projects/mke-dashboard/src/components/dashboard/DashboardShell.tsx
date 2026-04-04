@@ -10,6 +10,7 @@ import { IndicatorRow } from "./IndicatorRow";
 import { DashboardContext } from "@/copilot/DashboardContext";
 import { DashboardTools } from "@/copilot/DashboardTools";
 import { useNeighborhoodData } from "@/hooks/useNeighborhoodData";
+import { LayerToggles } from "@/components/map/LayerToggles";
 import { TARGET_NEIGHBORHOODS, DEFAULT_CATEGORIES } from "@/lib/constants";
 import type { CategoryId } from "@/types/metrics";
 
@@ -29,6 +30,15 @@ export function DashboardShell() {
   const [activeCategory, setActiveCategory] =
     useState<CategoryId>("community");
   const [showHOLC, setShowHOLC] = useState(false);
+  const [activeLayers, setActiveLayers] = useState<string[]>([]);
+
+  const handleToggleLayer = useCallback((layerId: string) => {
+    setActiveLayers((prev) =>
+      prev.includes(layerId)
+        ? prev.filter((id) => id !== layerId)
+        : [...prev, layerId],
+    );
+  }, []);
   const {
     metrics,
     isLoading,
@@ -93,15 +103,16 @@ export function DashboardShell() {
               </option>
             ))}
           </select>
-          <label className="ml-auto flex items-center gap-2 text-xs text-foundry">
-            <input
-              type="checkbox"
-              checked={showHOLC}
-              onChange={(e) => setShowHOLC(e.target.checked)}
-              className="h-4 w-4 rounded border-limestone/30 text-lakeshore focus:ring-lakeshore"
-            />
-            Show 1930s Redlining
-          </label>
+        </div>
+
+        {/* Map Layer Toggles */}
+        <div className="mb-4">
+          <LayerToggles
+            activeLayers={activeLayers}
+            onToggle={handleToggleLayer}
+            showHOLC={showHOLC}
+            onToggleHOLC={setShowHOLC}
+          />
         </div>
 
         {/* Key Indicators Row (like Kensington Home tab) */}
@@ -119,6 +130,7 @@ export function DashboardShell() {
             <DashboardMap
               selectedSlug={selectedSlug}
               showHOLC={showHOLC}
+              activeLayers={activeLayers}
               onNeighborhoodClick={setSelectedSlug}
             />
           </div>
