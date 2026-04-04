@@ -21,7 +21,7 @@ export function LayerToggles({
       <button
         type="button"
         onClick={() => onToggleHOLC(!showHOLC)}
-        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
+        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2.5 text-[11px] font-medium transition-colors min-h-[44px] ${
           showHOLC
             ? "bg-critical/10 text-critical ring-1 ring-critical/30"
             : "bg-limestone/10 text-foundry hover:bg-limestone/20"
@@ -42,7 +42,7 @@ export function LayerToggles({
             key={layer.id}
             type="button"
             onClick={() => onToggle(layer.id)}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2.5 text-[11px] font-medium transition-colors min-h-[44px] ${
               isActive
                 ? "ring-1 ring-opacity-30"
                 : "bg-limestone/10 text-foundry hover:bg-limestone/20"
