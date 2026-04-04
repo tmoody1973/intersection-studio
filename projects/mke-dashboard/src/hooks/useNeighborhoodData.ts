@@ -1,17 +1,47 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { MetricCardProps } from "@/types/metrics";
 
-/**
- * Hook to get per-neighborhood metrics from Convex.
- * Data comes from: ArcGIS spatial queries + CSV point-in-envelope + Census ACS.
- */
+// Metric ID → translation key mapping
+const METRIC_LABELS: Record<string, { label: string; unit: string }> = {
+  total_properties: { label: "totalProperties", unit: "parcels" },
+  owner_occupied_rate: { label: "ownerOccupiedRate", unit: "percent" },
+  avg_assessed_value: { label: "avgAssessedValue", unit: "dollars" },
+  population: { label: "population", unit: "parcels" },
+  median_income: { label: "medianIncome", unit: "dollars" },
+  libraries: { label: "libraries", unit: "parcels" },
+  schools: { label: "schools", unit: "schools" },
+  parks: { label: "parks", unit: "parcels" },
+  daycares: { label: "daycares", unit: "parcels" },
+  crime_total: { label: "totalCrimes", unit: "incidents" },
+  crime_violent: { label: "violentCrimes", unit: "incidents" },
+  crime_property: { label: "propertyCrimes", unit: "incidents" },
+  overdose_calls: { label: "overdoseCalls", unit: "calls" },
+  traffic_crashes: { label: "trafficCrashes", unit: "incidents" },
+  fire_incidents: { label: "fireIncidents", unit: "incidents" },
+  police_stations: { label: "policeStations", unit: "parcels" },
+  firehouses: { label: "firehouses", unit: "parcels" },
+  vacant_buildings: { label: "vacantBuildings", unit: "buildings" },
+  vacant_land: { label: "vacantLand", unit: "parcels" },
+  foreclosures_city: { label: "foreclosuresCity", unit: "parcels" },
+  foreclosures_bank: { label: "foreclosuresBank", unit: "parcels" },
+  service_requests_311: { label: "serviceRequests311", unit: "parcels" },
+  building_permits: { label: "buildingPermits", unit: "parcels" },
+  poverty_rate: { label: "povertyRate", unit: "percent" },
+  unemployment: { label: "unemployment", unit: "percent" },
+  median_home_value: { label: "medianHomeValue", unit: "dollars" },
+  food_inspection: { label: "foodInspectionPassRate", unit: "percent" },
+};
+
 export function useNeighborhoodData(slug: string) {
   const neighborhood = useQuery(api.neighborhoods.getBySlug, { slug });
   const isLoading = neighborhood === undefined;
+  const tm = useTranslations("metrics");
+  const tu = useTranslations("units");
 
   const crimeByType = useMemo(() => {
     const src = neighborhood?.crimeByType ?? neighborhood?.part1CrimeByType;
@@ -34,6 +64,19 @@ export function useNeighborhoodData(slug: string) {
     try { return JSON.parse(neighborhood.serviceRequestsByType) as Record<string, number>; } catch { return null; }
   }, [neighborhood?.serviceRequestsByType]);
 
+  // Helper to get translated label, falling back to English
+  const label = (id: string, fallback: string): string => {
+    const key = METRIC_LABELS[id]?.label;
+    if (!key) return fallback;
+    try { return tm(key); } catch { return fallback; }
+  };
+
+  const unit = (id: string, fallback: string): string => {
+    const key = METRIC_LABELS[id]?.unit;
+    if (!key) return fallback;
+    try { return tu(key); } catch { return fallback; }
+  };
+
   const metrics = useMemo((): MetricCardProps[] => {
     if (!neighborhood) return [];
 
@@ -42,101 +85,108 @@ export function useNeighborhoodData(slug: string) {
       : new Date().toISOString();
 
     const m: MetricCardProps[] = [];
-    const add = (props: Omit<MetricCardProps, "trend"> & { trend?: MetricCardProps["trend"] }) =>
-      m.push({ trend: null, ...props });
+    const add = (id: string, fallbackLabel: string, value: number | null, fallbackUnit: string, category: MetricCardProps["category"], sourceName: string, extra?: Partial<MetricCardProps>) =>
+      m.push({
+        id,
+        label: label(id, fallbackLabel),
+        value,
+        unit: unit(id, fallbackUnit),
+        trend: null,
+        category,
+        source: { name: sourceName, lastUpdated: now },
+        ...extra,
+      });
 
     // --- Community ---
     if (neighborhood.totalProperties != null)
-      add({ id: "total_properties", label: "Total Properties", value: neighborhood.totalProperties, unit: "parcels", category: "community", source: { name: "MPROP (spatial)", lastUpdated: now } });
+      add("total_properties", "Total Properties", neighborhood.totalProperties, "parcels", "community", "MPROP (spatial)");
 
     if (neighborhood.ownerOccupiedRate != null)
-      add({ id: "owner_occupied_rate", label: "Owner-Occupied Rate", value: neighborhood.ownerOccupiedRate, unit: "%", category: "community", source: { name: "MPROP (spatial)", lastUpdated: now } });
+      add("owner_occupied_rate", "Owner-Occupied Rate", neighborhood.ownerOccupiedRate, "%", "community", "MPROP (spatial)");
 
     if (neighborhood.avgAssessedValue != null)
-      add({ id: "avg_assessed_value", label: "Avg Assessed Value", value: Math.round(neighborhood.avgAssessedValue), unit: "per parcel", category: "community", source: { name: "MPROP (spatial)", lastUpdated: now } });
+      add("avg_assessed_value", "Avg Assessed Value", Math.round(neighborhood.avgAssessedValue), "per parcel", "community", "MPROP (spatial)");
 
     if (neighborhood.population != null)
-      add({ id: "population", label: "Population", value: neighborhood.population, unit: "residents", category: "community", source: { name: "Census ACS", lastUpdated: now } });
+      add("population", "Population", neighborhood.population, "residents", "community", "Census ACS");
 
     if (neighborhood.medianIncome != null)
-      add({ id: "median_income", label: "Median Household Income", value: neighborhood.medianIncome, unit: "per year", category: "community", source: { name: "Census ACS", lastUpdated: now } });
+      add("median_income", "Median Household Income", neighborhood.medianIncome, "per year", "community", "Census ACS");
 
-    // Community resources
     if (neighborhood.libraryCount)
-      add({ id: "libraries", label: "Libraries", value: neighborhood.libraryCount, unit: "locations", category: "community", source: { name: "MPL ArcGIS", lastUpdated: now } });
+      add("libraries", "Libraries", neighborhood.libraryCount, "locations", "community", "MPL ArcGIS");
 
     if (neighborhood.schoolCount)
-      add({ id: "schools", label: "Schools", value: neighborhood.schoolCount, unit: "schools", category: "community", source: { name: "MPROP Layer 18", lastUpdated: now } });
+      add("schools", "Schools", neighborhood.schoolCount, "schools", "community", "MPROP Layer 18");
 
     if (neighborhood.parkCount)
-      add({ id: "parks", label: "Parks", value: neighborhood.parkCount, unit: "parks", category: "community", source: { name: "MPROP Layer 16", lastUpdated: now } });
+      add("parks", "Parks", neighborhood.parkCount, "parks", "community", "MPROP Layer 16");
 
     if (neighborhood.daycareCount)
-      add({ id: "daycares", label: "Daycare Centers", value: neighborhood.daycareCount, unit: "centers", category: "community", source: { name: "MPROP Layer 19", lastUpdated: now } });
+      add("daycares", "Daycare Centers", neighborhood.daycareCount, "centers", "community", "MPROP Layer 19");
 
     // --- Public Safety ---
     const crimeCount = neighborhood.crimeTotal ?? neighborhood.part1CrimeCount;
     if (crimeCount != null)
-      add({ id: "crime_total", label: "Total Crimes", value: crimeCount, unit: "incidents", category: "publicSafety", source: { name: "WIBR Crime CSV (daily)", lastUpdated: now } });
+      add("crime_total", "Total Crimes", crimeCount, "incidents", "publicSafety", "WIBR Crime CSV (daily)");
 
     if (neighborhood.crimeViolent != null)
-      add({ id: "crime_violent", label: "Violent Crimes", value: neighborhood.crimeViolent, unit: "incidents", category: "publicSafety", source: { name: "WIBR Crime CSV", lastUpdated: now } });
+      add("crime_violent", "Violent Crimes", neighborhood.crimeViolent, "incidents", "publicSafety", "WIBR Crime CSV");
 
     if (neighborhood.crimeProperty != null)
-      add({ id: "crime_property", label: "Property Crimes", value: neighborhood.crimeProperty, unit: "incidents", category: "publicSafety", source: { name: "WIBR Crime CSV", lastUpdated: now } });
+      add("crime_property", "Property Crimes", neighborhood.crimeProperty, "incidents", "publicSafety", "WIBR Crime CSV");
 
     if (neighborhood.overdoseCount != null && neighborhood.overdoseCount > 0)
-      add({ id: "overdose_calls", label: "Overdose Calls", value: neighborhood.overdoseCount, unit: "calls", category: "publicSafety", source: { name: "EMS Calls CSV", lastUpdated: now } });
+      add("overdose_calls", "Overdose Calls", neighborhood.overdoseCount, "calls", "publicSafety", "EMS Calls CSV");
 
     if (neighborhood.trafficCrashCount != null && neighborhood.trafficCrashCount > 0)
-      add({ id: "traffic_crashes", label: "Traffic Crashes", value: neighborhood.trafficCrashCount, unit: "crashes", category: "publicSafety", source: { name: "Traffic Crash CSV", lastUpdated: now } });
+      add("traffic_crashes", "Traffic Crashes", neighborhood.trafficCrashCount, "crashes", "publicSafety", "Traffic Crash CSV");
 
     if (neighborhood.fireIncidentCount != null)
-      add({ id: "fire_incidents", label: "Fire Incidents", value: neighborhood.fireIncidentCount, unit: "incidents", category: "publicSafety", source: { name: "MFD Dispatch", lastUpdated: now } });
+      add("fire_incidents", "Fire Incidents", neighborhood.fireIncidentCount, "incidents", "publicSafety", "MFD Dispatch");
 
     if (neighborhood.policeStationCount)
-      add({ id: "police_stations", label: "Police Stations", value: neighborhood.policeStationCount, unit: "stations", category: "publicSafety", source: { name: "MPD ArcGIS", lastUpdated: now } });
+      add("police_stations", "Police Stations", neighborhood.policeStationCount, "stations", "publicSafety", "MPD ArcGIS");
 
     if (neighborhood.firehouseCount)
-      add({ id: "firehouses", label: "Firehouses", value: neighborhood.firehouseCount, unit: "stations", category: "publicSafety", source: { name: "MFD ArcGIS", lastUpdated: now } });
+      add("firehouses", "Firehouses", neighborhood.firehouseCount, "stations", "publicSafety", "MFD ArcGIS");
 
     // --- Quality of Life ---
     if (neighborhood.vacantBuildingCount != null)
-      add({ id: "vacant_buildings", label: "Vacant Buildings", value: neighborhood.vacantBuildingCount, unit: "buildings", category: "qualityOfLife", source: { name: "Accela Vacant Buildings (weekly)", lastUpdated: now } });
+      add("vacant_buildings", "Vacant Buildings", neighborhood.vacantBuildingCount, "buildings", "qualityOfLife", "Accela Vacant Buildings");
 
     if (neighborhood.vacantLandCount != null && neighborhood.vacantLandCount > 0)
-      add({ id: "vacant_land", label: "Vacant Land", value: neighborhood.vacantLandCount, unit: "parcels", category: "qualityOfLife", source: { name: "MPROP (spatial)", lastUpdated: now } });
+      add("vacant_land", "Vacant Land", neighborhood.vacantLandCount, "parcels", "qualityOfLife", "MPROP (spatial)");
 
     if (neighborhood.foreclosureCityCount != null)
-      add({ id: "foreclosures_city", label: "Foreclosures (City)", value: neighborhood.foreclosureCityCount, unit: "parcels", category: "qualityOfLife", source: { name: "Foreclosed Properties (spatial)", lastUpdated: now } });
+      add("foreclosures_city", "Foreclosures (City)", neighborhood.foreclosureCityCount, "parcels", "qualityOfLife", "Foreclosed Properties");
 
     if (neighborhood.foreclosureBankCount != null)
-      add({ id: "foreclosures_bank", label: "Foreclosures (Bank)", value: neighborhood.foreclosureBankCount, unit: "parcels", category: "qualityOfLife", source: { name: "Foreclosed Properties (spatial)", lastUpdated: now } });
+      add("foreclosures_bank", "Foreclosures (Bank)", neighborhood.foreclosureBankCount, "parcels", "qualityOfLife", "Foreclosed Properties");
 
     if (neighborhood.serviceRequests311 != null)
-      add({ id: "service_requests_311", label: "311 Service Requests", value: neighborhood.serviceRequests311, unit: "requests", category: "qualityOfLife", source: { name: "311 Call Center CSV (daily)", lastUpdated: now } });
+      add("service_requests_311", "311 Service Requests", neighborhood.serviceRequests311, "requests", "qualityOfLife", "311 Call Center CSV");
 
     if (neighborhood.buildingPermitCount != null && neighborhood.buildingPermitCount > 0)
-      add({ id: "building_permits", label: "Building Permits", value: neighborhood.buildingPermitCount, unit: "permits", category: "qualityOfLife", source: { name: "Building Permits CSV (daily)", lastUpdated: now } });
+      add("building_permits", "Building Permits", neighborhood.buildingPermitCount, "permits", "qualityOfLife", "Building Permits CSV");
 
     // --- Wellness ---
     if (neighborhood.povertyRate != null)
-      add({ id: "poverty_rate", label: "Poverty Rate", value: neighborhood.povertyRate, unit: "%", category: "wellness", source: { name: "Census ACS", lastUpdated: now } });
+      add("poverty_rate", "Poverty Rate", neighborhood.povertyRate, "%", "wellness", "Census ACS");
 
     if (neighborhood.unemploymentRate != null)
-      add({ id: "unemployment", label: "Unemployment Rate", value: neighborhood.unemploymentRate, unit: "%", category: "wellness", source: { name: "Census ACS", lastUpdated: now } });
+      add("unemployment", "Unemployment Rate", neighborhood.unemploymentRate, "%", "wellness", "Census ACS");
 
     if (neighborhood.medianHomeValue != null)
-      add({ id: "median_home_value", label: "Median Home Value", value: neighborhood.medianHomeValue, unit: "dollars", category: "wellness", source: { name: "Census ACS", lastUpdated: now } });
-
-    if (neighborhood.sviScore != null)
-      add({ id: "svi_score", label: "Social Vulnerability Index", value: neighborhood.sviScore, unit: "score (0-1)", category: "wellness", source: { name: "CDC SVI", lastUpdated: now } });
+      add("median_home_value", "Median Home Value", neighborhood.medianHomeValue, "dollars", "wellness", "Census ACS");
 
     if (neighborhood.foodInspectionPassRate != null)
-      add({ id: "food_inspection", label: "Food Inspection Pass Rate", value: neighborhood.foodInspectionPassRate, unit: "%", category: "wellness", source: { name: "Open Data Portal", lastUpdated: now }, progress: { value: neighborhood.foodInspectionPassRate, label: "passing" } });
+      add("food_inspection", "Food Inspection Pass Rate", neighborhood.foodInspectionPassRate, "%", "wellness", "Open Data Portal", {
+        progress: { value: neighborhood.foodInspectionPassRate, label: "passing" },
+      });
 
     return m;
-  }, [neighborhood]);
+  }, [neighborhood, label, unit]);
 
   return {
     metrics,
