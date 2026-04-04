@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+/* Milwaukee Civic Palette — Light Mode */
+:root {
+  --mke-lakeshore: #1a6b52;
+  --mke-cream-city: #f8f6f1;
+  --mke-iron: #1c1917;
+  --mke-foundry: #57534e;
+  --mke-limestone: #a8a29e;
+  --mke-civic-gold: #c4960c;
+
+  --mke-positive: #15803d;
+  --mke-positive-bg: #dcfce7;
+  --mke-warning: #d97706;
+  --mke-warning-bg: #fef3c7;
+  --mke-critical: #b91c1c;
+  --mke-critical-bg: #fee2e2;
+  --mke-info: #1d4ed8;
+  --mke-info-bg: #dbeafe;
+
+  --mke-community: #1a6b52;
+  --mke-safety: #b84233;
+  --mke-qol: #2563eb;
+  --mke-wellness: #7c3aed;
+
+  --background: var(--mke-cream-city);
+  --foreground: var(--mke-iron);
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --mke-lakeshore: #34d399;
+    --mke-cream-city: #1c1917;
+    --mke-iron: #f5f5f4;
+    --mke-foundry: #a8a29e;
+
+    --background: #1c1917;
+    --foreground: #f5f5f4;
+  }
+}
+
+/* CopilotKit overrides */
+:root {
+  --copilotkit-primary: #1a6b52;
+  --copilotkit-background: #f8f6f1;
+  --copilotkit-text: #1c1917;
+  --copilotkit-border: #e7e5e4;
+  --copilotkit-user-bubble: #1a6b52;
+  --copilotkit-assistant-bubble: #ffffff;
+  --copilotkit-font-family: "DM Sans", system-ui, sans-serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-lakeshore: var(--mke-lakeshore);
+  --color-cream-city: var(--mke-cream-city);
+  --color-iron: var(--mke-iron);
+  --color-foundry: var(--mke-foundry);
+  --color-limestone: var(--mke-limestone);
+  --color-civic-gold: var(--mke-civic-gold);
+  --color-positive: var(--mke-positive);
+  --color-critical: var(--mke-critical);
+  --color-warning: var(--mke-warning);
+  --color-info: var(--mke-info);
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", Consolas, monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
