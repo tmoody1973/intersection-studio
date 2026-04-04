@@ -166,9 +166,11 @@ export function MetricCard(props: MetricCardWithIndexProps) {
             </span>
           ) : value !== null ? (
             <span className="font-display text-[2rem] font-bold leading-none text-iron sm:text-[2.5rem]">
-              {typeof value === "number"
-                ? value.toLocaleString()
-                : value}
+              {unit === "dollars" || unit === "per parcel"
+                ? `$${typeof value === "number" ? value.toLocaleString() : value}`
+                : typeof value === "number"
+                  ? value.toLocaleString()
+                  : value}
             </span>
           ) : (
             <span className="font-display text-2xl font-bold text-limestone">
