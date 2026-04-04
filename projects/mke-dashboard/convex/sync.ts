@@ -22,6 +22,7 @@ import {
   fetchAllTracts,
   aggregateForNeighborhood,
 } from "./etl/census";
+import { fetchCommunityResources } from "./etl/community";
 
 /**
  * DCD neighborhood names (uppercase, matching the boundaries layer).
@@ -148,7 +149,15 @@ export const syncNeighborhood = internalAction({
         });
       }
 
-      // 9. Census tracts + ZIP codes in this neighborhood
+      // 9. Community resources (libraries, parks, schools, etc.)
+      let community = { libraryCount: 0, parkCount: 0, schoolCount: 0, daycareCount: 0, policeStationCount: 0, firehouseCount: 0 };
+      try {
+        community = await fetchCommunityResources(envelope);
+      } catch (e) {
+        console.error("Community resources fetch failed:", e);
+      }
+
+      // 10. Census tracts + ZIP codes in this neighborhood
       let censusTracts: string | undefined;
       let neighborhoodZips: string[] = [];
       let tractCodes: string[] = [];
@@ -297,6 +306,13 @@ export const syncNeighborhood = internalAction({
         // EMS / Safety
         overdoseCount,
         trafficCrashCount,
+        // Community Resources
+        libraryCount: community.libraryCount || undefined,
+        parkCount: community.parkCount || undefined,
+        schoolCount: community.schoolCount || undefined,
+        daycareCount: community.daycareCount || undefined,
+        policeStationCount: community.policeStationCount || undefined,
+        firehouseCount: community.firehouseCount || undefined,
         // Demographics (Census ACS)
         population: demographics.population,
         medianIncome: demographics.medianIncome,
@@ -345,6 +361,13 @@ export const upsertNeighborhood = internalMutation({
     foreclosureBankCount: v.optional(v.number()),
     housingAge: v.optional(v.string()),
     censusTracts: v.optional(v.string()),
+    // Community Resources
+    libraryCount: v.optional(v.number()),
+    parkCount: v.optional(v.number()),
+    schoolCount: v.optional(v.number()),
+    daycareCount: v.optional(v.number()),
+    policeStationCount: v.optional(v.number()),
+    firehouseCount: v.optional(v.number()),
     // Crime (WIBR CSV)
     crimeTotal: v.optional(v.number()),
     crimeViolent: v.optional(v.number()),

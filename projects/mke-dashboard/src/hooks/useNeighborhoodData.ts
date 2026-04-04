@@ -61,6 +61,19 @@ export function useNeighborhoodData(slug: string) {
     if (neighborhood.medianIncome != null)
       add({ id: "median_income", label: "Median Household Income", value: neighborhood.medianIncome, unit: "per year", category: "community", source: { name: "Census ACS", lastUpdated: now } });
 
+    // Community resources
+    if (neighborhood.libraryCount)
+      add({ id: "libraries", label: "Libraries", value: neighborhood.libraryCount, unit: "locations", category: "community", source: { name: "MPL ArcGIS", lastUpdated: now } });
+
+    if (neighborhood.schoolCount)
+      add({ id: "schools", label: "Schools", value: neighborhood.schoolCount, unit: "schools", category: "community", source: { name: "MPROP Layer 18", lastUpdated: now } });
+
+    if (neighborhood.parkCount)
+      add({ id: "parks", label: "Parks", value: neighborhood.parkCount, unit: "parks", category: "community", source: { name: "MPROP Layer 16", lastUpdated: now } });
+
+    if (neighborhood.daycareCount)
+      add({ id: "daycares", label: "Daycare Centers", value: neighborhood.daycareCount, unit: "centers", category: "community", source: { name: "MPROP Layer 19", lastUpdated: now } });
+
     // --- Public Safety ---
     const crimeCount = neighborhood.crimeTotal ?? neighborhood.part1CrimeCount;
     if (crimeCount != null)
@@ -80,6 +93,12 @@ export function useNeighborhoodData(slug: string) {
 
     if (neighborhood.fireIncidentCount != null)
       add({ id: "fire_incidents", label: "Fire Incidents", value: neighborhood.fireIncidentCount, unit: "incidents", category: "publicSafety", source: { name: "MFD Dispatch", lastUpdated: now } });
+
+    if (neighborhood.policeStationCount)
+      add({ id: "police_stations", label: "Police Stations", value: neighborhood.policeStationCount, unit: "stations", category: "publicSafety", source: { name: "MPD ArcGIS", lastUpdated: now } });
+
+    if (neighborhood.firehouseCount)
+      add({ id: "firehouses", label: "Firehouses", value: neighborhood.firehouseCount, unit: "stations", category: "publicSafety", source: { name: "MFD ArcGIS", lastUpdated: now } });
 
     // --- Quality of Life ---
     if (neighborhood.vacantBuildingCount != null)
@@ -103,6 +122,12 @@ export function useNeighborhoodData(slug: string) {
     // --- Wellness ---
     if (neighborhood.povertyRate != null)
       add({ id: "poverty_rate", label: "Poverty Rate", value: neighborhood.povertyRate, unit: "%", category: "wellness", source: { name: "Census ACS", lastUpdated: now } });
+
+    if (neighborhood.unemploymentRate != null)
+      add({ id: "unemployment", label: "Unemployment Rate", value: neighborhood.unemploymentRate, unit: "%", category: "wellness", source: { name: "Census ACS", lastUpdated: now } });
+
+    if (neighborhood.medianHomeValue != null)
+      add({ id: "median_home_value", label: "Median Home Value", value: neighborhood.medianHomeValue, unit: "dollars", category: "wellness", source: { name: "Census ACS", lastUpdated: now } });
 
     if (neighborhood.sviScore != null)
       add({ id: "svi_score", label: "Social Vulnerability Index", value: neighborhood.sviScore, unit: "score (0-1)", category: "wellness", source: { name: "CDC SVI", lastUpdated: now } });

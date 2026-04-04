@@ -54,9 +54,17 @@ export default defineSchema({
     raceBreakdown: v.optional(v.string()), // JSON
     medianHomeValue: v.optional(v.number()),
 
+    // Community Resources
+    libraryCount: v.optional(v.number()),
+    parkCount: v.optional(v.number()),
+    schoolCount: v.optional(v.number()),
+    daycareCount: v.optional(v.number()),
+    policeStationCount: v.optional(v.number()),
+    firehouseCount: v.optional(v.number()),
+
     // Wellness metrics
     foodInspectionPassRate: v.optional(v.number()),
-    sviScore: v.optional(v.number()), // CDC Social Vulnerability Index
+    sviScore: v.optional(v.number()),
 
     // Census tract mapping (for ACS lookups)
     censusTracts: v.optional(v.string()), // JSON: ["140100", "140200", ...]
