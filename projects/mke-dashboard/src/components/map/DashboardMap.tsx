@@ -32,11 +32,23 @@ export function DashboardMap({
   useEffect(() => {
     const dcdNames = TARGET_NEIGHBORHOODS.map((n) => n.dcdName);
     const whereClause = dcdNames.map((n) => `NEIGHBORHD = '${n}'`).join(" OR ");
-    const url = `${ARCGIS_URLS.neighborhoods}/query?where=${encodeURIComponent(whereClause)}&outFields=NEIGHBORHD&f=geojson`;
+    const url = `${ARCGIS_URLS.neighborhoods}/query?where=${encodeURIComponent(whereClause)}&outFields=NEIGHBORHD&outSR=4326&f=geojson`;
 
     fetch(url)
       .then((res) => res.json())
-      .then((data) => setBoundaries(data))
+      .then((data: GeoJSON.FeatureCollection) => {
+        // Replace DCD codes with community display names
+        const dcdToName = Object.fromEntries(
+          TARGET_NEIGHBORHOODS.map((n) => [n.dcdName, n.name]),
+        );
+        for (const feature of data.features) {
+          if (feature.properties) {
+            const dcdName = feature.properties.NEIGHBORHD as string;
+            feature.properties.DISPLAY_NAME = dcdToName[dcdName] ?? dcdName;
+          }
+        }
+        setBoundaries(data);
+      })
       .catch((err) => console.error("Failed to load boundaries:", err));
   }, []);
 
@@ -163,11 +175,10 @@ export function DashboardMap({
             id="neighborhood-labels"
             type="symbol"
             layout={{
-              "text-field": ["get", "NEIGHBORHD"],
+              "text-field": ["get", "DISPLAY_NAME"],
               "text-size": 11,
               "text-font": ["DIN Pro Medium", "Arial Unicode MS Regular"],
               "text-anchor": "center",
-              "text-transform": "uppercase",
             }}
             paint={{
               "text-color": "#1C1917",
