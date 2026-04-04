@@ -1,18 +1,28 @@
 "use client";
 
-import { useCallback } from "react";
+import { useState, useCallback } from "react";
 import { MetricsPanel } from "./MetricsPanel";
-import { SAMPLE_METRICS } from "@/data/sample-metrics";
+import { useNeighborhoodData } from "@/hooks/useNeighborhoodData";
+import { TARGET_NEIGHBORHOODS } from "@/lib/constants";
+
+function toSlug(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, "-");
+}
 
 export function DashboardShell() {
+  const [selectedSlug, setSelectedSlug] = useState("harambee");
+  const { metrics, neighborhoodName } = useNeighborhoodData(selectedSlug);
+
   const handleAskAI = useCallback((metricId: string, label: string) => {
     // TODO: Wire to CopilotKit sidebar in Sprint 3
-    console.info(`[CopilotKit] Ask AI about: ${label} (${metricId})`);
-  }, []);
+    console.info(
+      `[CopilotKit] Ask AI about: ${label} (${metricId}) in ${selectedSlug}`,
+    );
+  }, [selectedSlug]);
 
   return (
     <div className="mx-auto w-full max-w-5xl">
-      {/* Neighborhood selector placeholder */}
+      {/* Neighborhood selector */}
       <div className="mb-6 flex items-center gap-3">
         <label
           htmlFor="neighborhood-select"
@@ -23,24 +33,22 @@ export function DashboardShell() {
         <select
           id="neighborhood-select"
           className="rounded-lg border border-limestone/30 bg-white px-3 py-2 text-sm text-iron focus:border-lakeshore focus:outline-none focus:ring-1 focus:ring-lakeshore dark:bg-[#292524]"
-          defaultValue="harambee"
+          value={selectedSlug}
+          onChange={(e) => setSelectedSlug(e.target.value)}
         >
-          <option value="harambee">Harambee</option>
-          <option value="sherman-park">Sherman Park</option>
-          <option value="metcalfe-park">Metcalfe Park</option>
-          <option value="lindsay-heights">Lindsay Heights</option>
-          <option value="amani">Amani</option>
-          <option value="borchert-field">Borchert Field</option>
-          <option value="franklin-heights">Franklin Heights</option>
-          <option value="havenwoods">Havenwoods</option>
+          {TARGET_NEIGHBORHOODS.map((name) => (
+            <option key={name} value={toSlug(name)}>
+              {name}
+            </option>
+          ))}
         </select>
         <span className="text-xs text-limestone">
-          Sample data — live Convex queries in Sprint 2
+          Viewing: {neighborhoodName}
         </span>
       </div>
 
       {/* Metrics Panel: Category Tabs + Metric Cards */}
-      <MetricsPanel metrics={SAMPLE_METRICS} onAskAI={handleAskAI} />
+      <MetricsPanel metrics={metrics} onAskAI={handleAskAI} />
     </div>
   );
 }
