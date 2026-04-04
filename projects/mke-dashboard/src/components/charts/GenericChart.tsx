@@ -42,7 +42,7 @@ export function GenericChart({
   if (!data || data.length === 0) {
     return (
       <div className="rounded-lg border border-limestone/20 bg-white p-4 dark:bg-[#292524]">
-        <h3 className="font-display text-sm font-semibold text-iron">{title}</h3>
+        <h3 className="font-display text-base font-semibold text-iron">{title}</h3>
         <p className="mt-2 text-xs text-limestone">No data available</p>
       </div>
     );
@@ -50,7 +50,7 @@ export function GenericChart({
 
   return (
     <div className="rounded-lg border border-limestone/20 bg-white p-4 dark:bg-[#292524]">
-      <h3 className="mb-3 font-display text-sm font-semibold text-iron">
+      <h3 className="mb-3 font-display text-base font-semibold text-iron">
         {title}
       </h3>
       <div className="h-48 w-full">
