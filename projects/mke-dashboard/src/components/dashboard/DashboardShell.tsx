@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 import { CategoryTabs } from "./CategoryTabs";
@@ -26,11 +27,25 @@ const DashboardMap = dynamic(
 );
 
 export function DashboardShell() {
+  const t = useTranslations("dashboard");
+  const tc = useTranslations("categories");
+  const tChat = useTranslations("chat");
+
   const [selectedSlug, setSelectedSlug] = useState("harambee");
   const [activeCategory, setActiveCategory] =
     useState<CategoryId>("community");
   const [showHOLC, setShowHOLC] = useState(false);
   const [activeLayers, setActiveLayers] = useState<string[]>([]);
+
+  // Translate category labels
+  const translatedCategories = useMemo(
+    () =>
+      DEFAULT_CATEGORIES.map((cat) => ({
+        ...cat,
+        label: tc(cat.id),
+      })),
+    [tc],
+  );
 
   const handleToggleLayer = useCallback((layerId: string) => {
     setActiveLayers((prev) =>
@@ -138,7 +153,7 @@ export function DashboardShell() {
           {/* Category tabs + content */}
           <div className="min-w-0 flex-1">
             <CategoryTabs
-              categories={DEFAULT_CATEGORIES}
+              categories={translatedCategories}
               activeCategory={activeCategory}
               onChange={setActiveCategory}
               showCounts
@@ -167,8 +182,8 @@ export function DashboardShell() {
 
       <CopilotSidebar
         labels={{
-          title: "Ask about Milwaukee",
-          initial: `Hi! I can help you understand neighborhood data for ${neighborhoodName}. Try asking:\n\n• How many vacant properties are there?\n• Show me crime trends\n• Compare this neighborhood to Sherman Park`,
+          title: tChat("title"),
+          initial: tChat("initial"),
         }}
         defaultOpen={false}
       />
