@@ -6,16 +6,45 @@ import { api } from "../../convex/_generated/api";
 import type { MetricCardProps } from "@/types/metrics";
 
 /**
- * Hook to get neighborhood metrics from Convex (live ArcGIS data).
- * Falls back to empty state if data hasn't synced yet.
+ * Hook to get per-neighborhood metrics from Convex (live ArcGIS spatial data).
  */
 export function useNeighborhoodData(slug: string): {
   metrics: MetricCardProps[];
   isLoading: boolean;
   neighborhoodName: string;
+  crimeByType: Record<string, number> | null;
+  housingAge: Record<string, number> | null;
+  censusTracts: string[] | null;
 } {
   const neighborhood = useQuery(api.neighborhoods.getBySlug, { slug });
   const isLoading = neighborhood === undefined;
+
+  const crimeByType = useMemo(() => {
+    if (!neighborhood?.part1CrimeByType) return null;
+    try {
+      return JSON.parse(neighborhood.part1CrimeByType) as Record<string, number>;
+    } catch {
+      return null;
+    }
+  }, [neighborhood?.part1CrimeByType]);
+
+  const housingAge = useMemo(() => {
+    if (!neighborhood?.housingAge) return null;
+    try {
+      return JSON.parse(neighborhood.housingAge) as Record<string, number>;
+    } catch {
+      return null;
+    }
+  }, [neighborhood?.housingAge]);
+
+  const censusTracts = useMemo(() => {
+    if (!neighborhood?.censusTracts) return null;
+    try {
+      return JSON.parse(neighborhood.censusTracts) as string[];
+    } catch {
+      return null;
+    }
+  }, [neighborhood?.censusTracts]);
 
   const metrics = useMemo((): MetricCardProps[] => {
     if (!neighborhood) return [];
@@ -32,10 +61,10 @@ export function useNeighborhoodData(slug: string): {
         id: "total_properties",
         label: "Total Properties",
         value: neighborhood.totalProperties,
-        unit: "parcels (citywide)",
+        unit: "parcels",
         trend: null,
         category: "community",
-        source: { name: "MPROP REST", lastUpdated: now },
+        source: { name: "MPROP REST (spatial)", lastUpdated: now },
       });
     }
 
@@ -47,19 +76,43 @@ export function useNeighborhoodData(slug: string): {
         unit: "%",
         trend: null,
         category: "community",
-        source: { name: "MPROP REST", lastUpdated: now },
+        source: { name: "MPROP REST (spatial)", lastUpdated: now },
       });
     }
 
     if (neighborhood.avgAssessedValue != null) {
       result.push({
-        id: "avg_assessed_value_community",
+        id: "avg_assessed_value",
         label: "Avg Assessed Value",
         value: Math.round(neighborhood.avgAssessedValue),
         unit: "per parcel",
         trend: null,
         category: "community",
-        source: { name: "MPROP REST", lastUpdated: now },
+        source: { name: "MPROP REST (spatial)", lastUpdated: now },
+      });
+    }
+
+    if (neighborhood.population != null) {
+      result.push({
+        id: "population",
+        label: "Population",
+        value: neighborhood.population,
+        unit: "residents",
+        trend: null,
+        category: "community",
+        source: { name: "Census ACS 5-Year", lastUpdated: now },
+      });
+    }
+
+    if (neighborhood.medianIncome != null) {
+      result.push({
+        id: "median_income",
+        label: "Median Household Income",
+        value: neighborhood.medianIncome,
+        unit: "per year",
+        trend: null,
+        category: "community",
+        source: { name: "Census ACS 5-Year", lastUpdated: now },
       });
     }
 
@@ -72,7 +125,7 @@ export function useNeighborhoodData(slug: string): {
         unit: "incidents",
         trend: null,
         category: "publicSafety",
-        source: { name: "MPD Monthly", lastUpdated: now },
+        source: { name: "MPD Monthly (spatial)", lastUpdated: now },
       });
     }
 
@@ -94,22 +147,22 @@ export function useNeighborhoodData(slug: string): {
         id: "vacant_buildings",
         label: "Vacant Buildings",
         value: neighborhood.vacantBuildingCount,
-        unit: "buildings (citywide)",
+        unit: "buildings",
         trend: null,
         category: "qualityOfLife",
-        source: { name: "Strong Neighborhoods", lastUpdated: now },
+        source: { name: "Strong Neighborhoods (spatial)", lastUpdated: now },
       });
     }
 
-    if (neighborhood.taxDelinquentCount != null) {
+    if (neighborhood.vacantLandCount != null && neighborhood.vacantLandCount > 0) {
       result.push({
-        id: "tax_delinquent",
-        label: "Tax-Delinquent Properties",
-        value: neighborhood.taxDelinquentCount,
+        id: "vacant_land",
+        label: "Vacant Land Parcels",
+        value: neighborhood.vacantLandCount,
         unit: "parcels",
         trend: null,
         category: "qualityOfLife",
-        source: { name: "City Treasurer", lastUpdated: now },
+        source: { name: "MPROP REST (spatial)", lastUpdated: now },
       });
     }
 
@@ -118,10 +171,10 @@ export function useNeighborhoodData(slug: string): {
         id: "foreclosures_city",
         label: "Foreclosures (City-Owned)",
         value: neighborhood.foreclosureCityCount,
-        unit: "parcels (citywide)",
+        unit: "parcels",
         trend: null,
         category: "qualityOfLife",
-        source: { name: "Foreclosed Properties", lastUpdated: now },
+        source: { name: "Foreclosed Properties (spatial)", lastUpdated: now },
       });
     }
 
@@ -130,26 +183,38 @@ export function useNeighborhoodData(slug: string): {
         id: "foreclosures_bank",
         label: "Foreclosures (Bank-Owned)",
         value: neighborhood.foreclosureBankCount,
-        unit: "parcels (citywide)",
+        unit: "parcels",
         trend: null,
         category: "qualityOfLife",
-        source: { name: "Foreclosed Properties", lastUpdated: now },
-      });
-    }
-
-    if (neighborhood.avgAssessedValue != null) {
-      result.push({
-        id: "avg_assessed_value_qol",
-        label: "Avg Assessed Value",
-        value: Math.round(neighborhood.avgAssessedValue),
-        unit: "per parcel",
-        trend: null,
-        category: "qualityOfLife",
-        source: { name: "MPROP REST", lastUpdated: now },
+        source: { name: "Foreclosed Properties (spatial)", lastUpdated: now },
       });
     }
 
     // --- Wellness ---
+    if (neighborhood.sviScore != null) {
+      result.push({
+        id: "svi_score",
+        label: "Social Vulnerability Index",
+        value: neighborhood.sviScore,
+        unit: "score (0-1)",
+        trend: null,
+        category: "wellness",
+        source: { name: "CDC SVI", lastUpdated: now },
+      });
+    }
+
+    if (neighborhood.povertyRate != null) {
+      result.push({
+        id: "poverty_rate",
+        label: "Poverty Rate",
+        value: neighborhood.povertyRate,
+        unit: "%",
+        trend: null,
+        category: "wellness",
+        source: { name: "Census ACS 5-Year", lastUpdated: now },
+      });
+    }
+
     if (neighborhood.foodInspectionPassRate != null) {
       result.push({
         id: "food_inspection_pass_rate",
@@ -173,5 +238,8 @@ export function useNeighborhoodData(slug: string): {
     metrics,
     isLoading,
     neighborhoodName: neighborhood?.name ?? slug,
+    crimeByType,
+    housingAge,
+    censusTracts,
   };
 }

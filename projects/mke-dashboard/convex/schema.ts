@@ -10,10 +10,10 @@ export default defineSchema({
   neighborhoods: defineTable({
     name: v.string(),
     slug: v.string(),
-    // Boundary polygon (GeoJSON stringified — Convex doesn't support nested objects well)
     boundaryGeoJson: v.optional(v.string()),
+    envelopeJson: v.optional(v.string()), // ArcGIS envelope for spatial queries
 
-    // Community metrics
+    // Community metrics (per-neighborhood via spatial query)
     totalProperties: v.optional(v.number()),
     ownerOccupiedCount: v.optional(v.number()),
     ownerOccupiedRate: v.optional(v.number()),
@@ -21,26 +21,40 @@ export default defineSchema({
 
     // Public Safety metrics
     part1CrimeCount: v.optional(v.number()),
-    part1CrimeByType: v.optional(v.string()), // JSON stringified breakdown
+    part1CrimeByType: v.optional(v.string()), // JSON: {"Assault": 45, "Theft": 120, ...}
     crimeYoYChange: v.optional(v.number()),
     fireIncidentCount: v.optional(v.number()),
 
     // Quality of Life metrics
     vacantBuildingCount: v.optional(v.number()),
+    vacantLandCount: v.optional(v.number()), // C_A_CLASS = '5' per neighborhood
     taxDelinquentCount: v.optional(v.number()),
     foreclosureCityCount: v.optional(v.number()),
     foreclosureBankCount: v.optional(v.number()),
     avgAssessedValue: v.optional(v.number()),
+    housingAge: v.optional(v.string()), // JSON: {"1920s": 450, "1930s": 300, ...}
+
+    // Demographics (Census ACS, by tract → aggregated)
+    population: v.optional(v.number()),
+    medianIncome: v.optional(v.number()),
+    povertyRate: v.optional(v.number()),
+    unemploymentRate: v.optional(v.number()),
+    raceBreakdown: v.optional(v.string()), // JSON
+    medianHomeValue: v.optional(v.number()),
 
     // Wellness metrics
     foodInspectionPassRate: v.optional(v.number()),
+    sviScore: v.optional(v.number()), // CDC Social Vulnerability Index
 
-    // Trend data (previous period values for computing trends)
-    previousPeriod: v.optional(v.string()), // JSON stringified previous metrics
+    // Census tract mapping (for ACS lookups)
+    censusTracts: v.optional(v.string()), // JSON: ["140100", "140200", ...]
+
+    // Trend data
+    previousPeriod: v.optional(v.string()),
 
     // Sync metadata
-    lastSyncAt: v.number(), // Unix timestamp ms
-    lastSyncStatus: v.string(), // "success" | "error" | "partial"
+    lastSyncAt: v.number(),
+    lastSyncStatus: v.string(),
     lastSyncError: v.optional(v.string()),
   })
     .index("by_slug", ["slug"])
