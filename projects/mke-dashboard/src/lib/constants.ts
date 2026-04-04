@@ -135,7 +135,7 @@ export const TARGET_NEIGHBORHOODS = [
   { name: "Franklin Heights", slug: "franklin-heights", dcdName: "FRANKLIN HEIGHTS" },
   { name: "Harambee", slug: "harambee", dcdName: "HARAMBEE" },
   { name: "Havenwoods", slug: "havenwoods", dcdName: "HAVENWOODS" },
-  { name: "Lindsay Heights", slug: "lindsay-heights", dcdName: "LINDSAY PARK" },
+  { name: "Lindsay Heights", slug: "lindsay-heights", dcdName: "NORTH DIVISION" },
   { name: "Metcalfe Park", slug: "metcalfe-park", dcdName: "METCALFE PARK" },
   { name: "Sherman Park", slug: "sherman-park", dcdName: "SHERMAN PARK" },
 ] as const;

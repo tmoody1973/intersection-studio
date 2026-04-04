@@ -217,7 +217,7 @@ export async function fetchTrafficCrashCount(envelope: Envelope): Promise<number
   return count;
 }
 
-// --- Stubs for sources without coordinates ---
+// --- 311 Service Requests (ZIP-based filtering) ---
 
 export interface ServiceRequestAggregation {
   total: number;
@@ -225,11 +225,48 @@ export interface ServiceRequestAggregation {
   byMonth: Record<string, number>;
 }
 
+/**
+ * Fetch 311 service requests filtered by ZIP codes.
+ * 311 data has no lat/lng but has addresses with ZIP codes.
+ * We get the ZIPs for a neighborhood from MPROP spatial query.
+ */
 export async function fetch311Data(
   _envelope: Envelope,
+  zipCodes?: string[],
 ): Promise<ServiceRequestAggregation> {
-  // 311 CSV lacks coordinates — requires geocoding
-  return { total: 0, byType: {}, byMonth: {} };
+  if (!zipCodes || zipCodes.length === 0) {
+    return { total: 0, byType: {}, byMonth: {} };
+  }
+
+  const records = await ckanFetchAll(
+    "bf2b508a-5bfa-49da-8846-d87ffeee020a", // 311 current
+    5000,
+  );
+
+  const zipSet = new Set(zipCodes);
+  const result: ServiceRequestAggregation = { total: 0, byType: {}, byMonth: {} };
+
+  for (const row of records) {
+    const addr = String(row["OBJECTDESC"] ?? "");
+    // Extract ZIP from address: "5155 N 72ND ST, MILWAUKEE, WI, 53218-3945"
+    const parts = addr.split(",");
+    if (parts.length < 4) continue;
+    const zip5 = parts[parts.length - 1].trim().substring(0, 5);
+    if (!zipSet.has(zip5)) continue;
+
+    result.total++;
+
+    const title = String(row["TITLE"] ?? "Other");
+    result.byType[title] = (result.byType[title] ?? 0) + 1;
+
+    const dateStr = String(row["CREATIONDATE"] ?? "");
+    const month = dateStr.substring(0, 7);
+    if (month.length === 7) {
+      result.byMonth[month] = (result.byMonth[month] ?? 0) + 1;
+    }
+  }
+
+  return result;
 }
 
 export interface PermitAggregation {

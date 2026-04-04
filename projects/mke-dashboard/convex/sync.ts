@@ -18,6 +18,10 @@ import {
   fetchOverdoseCount,
   fetchTrafficCrashCount,
 } from "./etl/csv";
+import {
+  fetchAllTracts,
+  aggregateForNeighborhood,
+} from "./etl/census";
 
 /**
  * DCD neighborhood names (uppercase, matching the boundaries layer).
@@ -28,7 +32,7 @@ const NEIGHBORHOODS: Array<{ name: string; slug: string; dcdName: string }> = [
   { name: "Franklin Heights", slug: "franklin-heights", dcdName: "FRANKLIN HEIGHTS" },
   { name: "Harambee", slug: "harambee", dcdName: "HARAMBEE" },
   { name: "Havenwoods", slug: "havenwoods", dcdName: "HAVENWOODS" },
-  { name: "Lindsay Heights", slug: "lindsay-heights", dcdName: "LINDSAY PARK" },
+  { name: "Lindsay Heights", slug: "lindsay-heights", dcdName: "NORTH DIVISION" },
   { name: "Metcalfe Park", slug: "metcalfe-park", dcdName: "METCALFE PARK" },
   { name: "Sherman Park", slug: "sherman-park", dcdName: "SHERMAN PARK" },
 ];
@@ -144,22 +148,55 @@ export const syncNeighborhood = internalAction({
         });
       }
 
-      // 9. Census tracts in this neighborhood (for future ACS queries)
+      // 9. Census tracts + ZIP codes in this neighborhood
       let censusTracts: string | undefined;
+      let neighborhoodZips: string[] = [];
+      let tractCodes: string[] = [];
       try {
         const tractRecords = await spatialFeatures(
           ENDPOINTS.mprop,
           "GEO_TRACT IS NOT NULL",
-          "GEO_TRACT",
+          "GEO_TRACT,GEO_ZIP_CODE",
           envelope,
           5000,
         );
-        const tracts = [
+        tractCodes = [
           ...new Set(tractRecords.map((r) => String(r.GEO_TRACT))),
         ];
-        censusTracts = JSON.stringify(tracts);
+        neighborhoodZips = [
+          ...new Set(
+            tractRecords
+              .map((r) => String(r.GEO_ZIP_CODE ?? ""))
+              .filter((z) => z.length >= 5),
+          ),
+        ];
+        censusTracts = JSON.stringify(tractCodes);
       } catch {
         censusTracts = undefined;
+      }
+
+      // 9b. Census ACS demographics (using tract codes)
+      let demographics: {
+        population?: number;
+        medianIncome?: number;
+        povertyRate?: number;
+        unemploymentRate?: number;
+        medianHomeValue?: number;
+      } = {};
+      try {
+        if (tractCodes.length > 0) {
+          const allTracts = await fetchAllTracts();
+          const agg = aggregateForNeighborhood(tractCodes, allTracts);
+          demographics = {
+            population: agg.population || undefined,
+            medianIncome: agg.medianIncome ?? undefined,
+            povertyRate: agg.povertyRate ?? undefined,
+            unemploymentRate: agg.unemploymentRate ?? undefined,
+            medianHomeValue: agg.medianHomeValue ?? undefined,
+          };
+        }
+      } catch (e) {
+        console.error("Census ACS fetch failed:", e);
       }
 
       // 10. CSV Data Sources (daily updated, point-in-envelope)
@@ -181,7 +218,7 @@ export const syncNeighborhood = internalAction({
 
       let serviceRequests: { total?: number; byType?: string; byMonth?: string } = {};
       try {
-        const sr = await fetch311Data(envelope);
+        const sr = await fetch311Data(envelope, neighborhoodZips);
         serviceRequests = {
           total: sr.total,
           byType: JSON.stringify(sr.byType),
@@ -260,6 +297,12 @@ export const syncNeighborhood = internalAction({
         // EMS / Safety
         overdoseCount,
         trafficCrashCount,
+        // Demographics (Census ACS)
+        population: demographics.population,
+        medianIncome: demographics.medianIncome,
+        povertyRate: demographics.povertyRate,
+        unemploymentRate: demographics.unemploymentRate,
+        medianHomeValue: demographics.medianHomeValue,
         // Sync
         lastSyncAt: Date.now(),
         lastSyncStatus: "success",
@@ -311,6 +354,12 @@ export const upsertNeighborhood = internalMutation({
     // Crime (ArcGIS MPD — legacy/fallback)
     part1CrimeCount: v.optional(v.number()),
     part1CrimeByType: v.optional(v.string()),
+    // Demographics (Census ACS)
+    population: v.optional(v.number()),
+    medianIncome: v.optional(v.number()),
+    povertyRate: v.optional(v.number()),
+    unemploymentRate: v.optional(v.number()),
+    medianHomeValue: v.optional(v.number()),
     // 311 Service Requests
     serviceRequests311: v.optional(v.number()),
     serviceRequestsByType: v.optional(v.string()),
