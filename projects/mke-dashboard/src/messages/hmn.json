@@ -1,0 +1,54 @@
+{
+  "dashboard": {
+    "title": "Milwaukee Zej Zog Kev Muaj Zog",
+    "subtitle": "Cov ntaub ntawv los ntawm ntau lub tuam tsev rau kev pom tseeb thiab kev txhim kho zej zog",
+    "neighborhoods": "zej zog",
+    "viewing": "Saib",
+    "signIn": "Kos npe nkag",
+    "showRedlining": "Qhia Redlining 1930s",
+    "noMetrics": "Tsis muaj cov ntsuas rau qeb no.",
+    "noMetricsHint": "Yuav muaj ntau cov ntaub ntawv ntxiv thaum muaj kev koom tes nrog lub nroog.",
+    "askAI": "Nug AI txog qhov no",
+    "dataUnavailable": "Tsis muaj cov ntaub ntawv",
+    "comingSoon": "Yuav los sai",
+    "citywide": "tag nrho lub nroog"
+  },
+  "categories": {
+    "community": "Zej Zog",
+    "publicSafety": "Kev Nyab Xeeb",
+    "qualityOfLife": "Zoo Lub Neej",
+    "wellness": "Kev Noj Qab Haus Huv"
+  },
+  "metrics": {
+    "totalProperties": "Tag Nrho Cov Vaj Tsev",
+    "ownerOccupiedRate": "Tus Nqi Tswv Tsev Nyob",
+    "avgAssessedValue": "Nqi Ntsuas Nruab Nrab",
+    "schools": "Tsev Kawm Ntawv",
+    "part1Crimes": "Kev Ua Txhaum Cai Ntu 1",
+    "fireIncidents": "Kev Kub Hnyiab",
+    "overdoseCalls": "Kev Hu Overdose",
+    "vacantBuildings": "Tsev Khoob",
+    "taxDelinquent": "Vaj Tsev Tsis Them Se",
+    "foreclosuresCity": "Kev Txeeb Tsev (Nroog)",
+    "foreclosuresBank": "Kev Txeeb Tsev (Txhab Nyiaj)",
+    "foodInspectionPassRate": "Tus Nqi Tshuaj Xyuas Zaub Mov"
+  },
+  "units": {
+    "parcels": "daim av",
+    "percent": "%",
+    "dollars": "ib daim av",
+    "incidents": "xwm txheej",
+    "calls": "kev hu",
+    "buildings": "tsev",
+    "schools": "tsev kawm ntawv"
+  },
+  "trends": {
+    "improving": "zoo tuaj",
+    "worsening": "phem tuaj",
+    "stable": "ruaj khov"
+  },
+  "chat": {
+    "title": "Nug txog Milwaukee",
+    "initial": "Nyob zoo! Kuv pab tau koj to taub cov ntaub ntawv zej zog. Sim nug:\n\n• Muaj pes tsawg lub tsev khoob?\n• Kev ua txhaum cai zoo li cas?\n• Sib piv zej zog"
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "dashboard": {
+    "title": "Milwaukee Neighborhood Vitality",
+    "subtitle": "Cross-department data for transparency and community-driven revitalization",
+    "neighborhoods": "neighborhoods",
+    "viewing": "Viewing",
+    "signIn": "Sign in",
+    "showRedlining": "Show 1930s Redlining",
+    "noMetrics": "No metrics available for this category yet.",
+    "noMetricsHint": "More data sources will be added as city partnerships develop.",
+    "askAI": "Ask AI about this",
+    "dataUnavailable": "Data unavailable",
+    "comingSoon": "Coming soon",
+    "citywide": "citywide"
+  },
+  "categories": {
+    "community": "Community",
+    "publicSafety": "Public Safety",
+    "qualityOfLife": "Quality of Life",
+    "wellness": "Wellness"
+  },
+  "metrics": {
+    "totalProperties": "Total Properties",
+    "ownerOccupiedRate": "Owner-Occupied Rate",
+    "avgAssessedValue": "Avg Assessed Value",
+    "schools": "Schools",
+    "part1Crimes": "Part 1 Crimes",
+    "fireIncidents": "Fire Incidents",
+    "overdoseCalls": "Overdose Calls",
+    "vacantBuildings": "Vacant Buildings",
+    "taxDelinquent": "Tax-Delinquent Properties",
+    "foreclosuresCity": "Foreclosures (City-Owned)",
+    "foreclosuresBank": "Foreclosures (Bank-Owned)",
+    "foodInspectionPassRate": "Food Inspection Pass Rate"
+  },
+  "units": {
+    "parcels": "parcels",
+    "percent": "%",
+    "dollars": "per parcel",
+    "incidents": "incidents",
+    "calls": "calls",
+    "buildings": "buildings",
+    "schools": "schools"
+  },
+  "trends": {
+    "improving": "improving",
+    "worsening": "worsening",
+    "stable": "stable"
+  },
+  "chat": {
+    "title": "Ask about Milwaukee",
+    "initial": "Hi! I can help you understand neighborhood data. Try asking:\n\n• How many vacant properties are there?\n• What's the crime trend?\n• Compare neighborhoods"
+  }
+}

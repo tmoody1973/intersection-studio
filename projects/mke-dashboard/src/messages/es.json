@@ -1,0 +1,54 @@
+{
+  "dashboard": {
+    "title": "Vitalidad de los Vecindarios de Milwaukee",
+    "subtitle": "Datos interdepartamentales para la transparencia y revitalización comunitaria",
+    "neighborhoods": "vecindarios",
+    "viewing": "Viendo",
+    "signIn": "Iniciar sesión",
+    "showRedlining": "Mostrar Redlining de los 1930s",
+    "noMetrics": "No hay métricas disponibles para esta categoría todavía.",
+    "noMetricsHint": "Se agregarán más fuentes de datos a medida que se desarrollen las asociaciones con la ciudad.",
+    "askAI": "Pregúntale a la IA sobre esto",
+    "dataUnavailable": "Datos no disponibles",
+    "comingSoon": "Próximamente",
+    "citywide": "toda la ciudad"
+  },
+  "categories": {
+    "community": "Comunidad",
+    "publicSafety": "Seguridad P��blica",
+    "qualityOfLife": "Calidad de Vida",
+    "wellness": "Bienestar"
+  },
+  "metrics": {
+    "totalProperties": "Propiedades Totales",
+    "ownerOccupiedRate": "Tasa de Propietarios",
+    "avgAssessedValue": "Valor Tasado Promedio",
+    "schools": "Escuelas",
+    "part1Crimes": "Delitos Parte 1",
+    "fireIncidents": "Incidentes de Incendio",
+    "overdoseCalls": "Llamadas por Sobredosis",
+    "vacantBuildings": "Edificios Vacantes",
+    "taxDelinquent": "Propiedades con Impuestos Atrasados",
+    "foreclosuresCity": "Ejecuciones Hipotecarias (Ciudad)",
+    "foreclosuresBank": "Ejecuciones Hipotecarias (Banco)",
+    "foodInspectionPassRate": "Tasa de Aprobación de Inspección Alimentaria"
+  },
+  "units": {
+    "parcels": "parcelas",
+    "percent": "%",
+    "dollars": "por parcela",
+    "incidents": "incidentes",
+    "calls": "llamadas",
+    "buildings": "edificios",
+    "schools": "escuelas"
+  },
+  "trends": {
+    "improving": "mejorando",
+    "worsening": "empeorando",
+    "stable": "estable"
+  },
+  "chat": {
+    "title": "Pregunta sobre Milwaukee",
+    "initial": "¡Hola! Puedo ayudarte a entender los datos del vecindario. Intenta preguntar:\n\n• ¿Cuántas propiedades vacantes hay?\n• ¿Cuál es la tendencia del crimen?\n• Compara vecindarios"
+  }
+}

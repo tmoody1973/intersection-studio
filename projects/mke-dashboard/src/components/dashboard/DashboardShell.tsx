@@ -10,30 +10,24 @@ import { useNeighborhoodData } from "@/hooks/useNeighborhoodData";
 import { TARGET_NEIGHBORHOODS } from "@/lib/constants";
 import type { CategoryId } from "@/types/metrics";
 
-// Dynamic import for Mapbox (requires WebGL, can't SSR)
 const DashboardMap = dynamic(
   () =>
     import("@/components/map/DashboardMap").then((mod) => mod.DashboardMap),
-  { ssr: false, loading: () => <div className="h-full bg-limestone/10 rounded-lg animate-pulse" /> },
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full animate-pulse rounded-lg bg-limestone/10" />
+    ),
+  },
 );
-
-function toSlug(name: string): string {
-  return name.toLowerCase().replace(/\s+/g, "-");
-}
 
 export function DashboardShell() {
   const [selectedSlug, setSelectedSlug] = useState("harambee");
-  const [activeCategory, setActiveCategory] = useState<CategoryId>("community");
+  const [activeCategory, setActiveCategory] =
+    useState<CategoryId>("community");
   const [showHOLC, setShowHOLC] = useState(false);
   const { metrics, isLoading, neighborhoodName } =
     useNeighborhoodData(selectedSlug);
-
-  // Parse boundary GeoJSON from Convex data for the map
-  const boundaryData = useMemo(() => {
-    // This would come from the Convex neighborhood record
-    // For now, we'll let the map load boundaries from the DCD layer
-    return undefined;
-  }, [selectedSlug]);
 
   const handleAskAI = useCallback(
     (metricId: string, label: string) => {
@@ -70,9 +64,9 @@ export function DashboardShell() {
             value={selectedSlug}
             onChange={(e) => setSelectedSlug(e.target.value)}
           >
-            {TARGET_NEIGHBORHOODS.map((name) => (
-              <option key={name} value={toSlug(name)}>
-                {name}
+            {TARGET_NEIGHBORHOODS.map((n) => (
+              <option key={n.slug} value={n.slug}>
+                {n.name}
               </option>
             ))}
           </select>
@@ -94,7 +88,11 @@ export function DashboardShell() {
         <div className="flex flex-col gap-4 lg:flex-row">
           {/* Map */}
           <div className="h-[300px] w-full overflow-hidden rounded-lg border border-limestone/20 lg:h-[600px] lg:w-[400px] lg:flex-shrink-0">
-            <DashboardMap showHOLC={showHOLC} />
+            <DashboardMap
+              selectedSlug={selectedSlug}
+              showHOLC={showHOLC}
+              onNeighborhoodClick={setSelectedSlug}
+            />
           </div>
 
           {/* Metrics Panel */}

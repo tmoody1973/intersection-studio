@@ -88,17 +88,20 @@ export const DEFAULT_CATEGORIES: CategoryTab[] = [
 ];
 
 // --- Target Neighborhoods (Phase 1: 8 northside neighborhoods) ---
+// Names match DCD neighborhood boundaries layer (NEIGHBORHD field, uppercase)
 
 export const TARGET_NEIGHBORHOODS = [
-  "Amani",
-  "Borchert Field",
-  "Franklin Heights",
-  "Harambee",
-  "Havenwoods",
-  "Lindsay Heights",
-  "Metcalfe Park",
-  "Sherman Park",
+  { name: "Amani", slug: "amani", dcdName: "AMANI" },
+  { name: "Borchert Field", slug: "borchert-field", dcdName: "BORCHERT FIELD" },
+  { name: "Franklin Heights", slug: "franklin-heights", dcdName: "FRANKLIN HEIGHTS" },
+  { name: "Harambee", slug: "harambee", dcdName: "HARAMBEE" },
+  { name: "Havenwoods", slug: "havenwoods", dcdName: "HAVENWOODS" },
+  { name: "Lindsay Heights", slug: "lindsay-heights", dcdName: "LINDSAY PARK" },
+  { name: "Metcalfe Park", slug: "metcalfe-park", dcdName: "METCALFE PARK" },
+  { name: "Sherman Park", slug: "sherman-park", dcdName: "SHERMAN PARK" },
 ] as const;
+
+export type NeighborhoodDef = (typeof TARGET_NEIGHBORHOODS)[number];
 
 // --- Auth Tiers ---
 
