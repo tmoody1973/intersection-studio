@@ -143,13 +143,13 @@ export function MetricCard(props: MetricCardWithIndexProps) {
       initial="hidden"
       animate="visible"
     >
-      {/* Left border accent */}
+      {/* Top border accent — subtle category indicator */}
       <div
-        className="absolute left-0 top-0 h-full w-[3px]"
+        className="absolute left-0 top-0 h-[2px] w-full"
         style={{ backgroundColor: state === "error" ? "#B91C1C" : borderColor }}
       />
 
-      <div className="ml-2 p-3 sm:p-4">
+      <div className="p-3 pt-4 sm:p-4 sm:pt-5">
         {/* Row 1: Label + Trend Badge */}
         <div className="flex items-center justify-between gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-foundry sm:text-xs">
