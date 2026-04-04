@@ -1,27 +1,32 @@
 import { internalAction, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import {
   ENDPOINTS,
   queryCount,
   queryStats,
-  spatialCount,
   fetchNeighborhoodBoundary,
 } from "./etl/arcgis";
 
 /**
- * Sync a single neighborhood's metrics from ArcGIS + external sources.
- * Called by the cron job or manually by city officials.
+ * Sync a single neighborhood's metrics from ArcGIS.
+ *
+ * Current approach: MPROP metrics are citywide (the NEIGHBORHOOD field uses
+ * assessor numeric codes, not DCD names). Per-neighborhood filtering requires
+ * a census tract → DCD neighborhood mapping that will be built in Phase 3.
+ *
+ * For now: citywide totals are real ArcGIS data. Vacancy and foreclosure
+ * counts are also citywide from their respective layers.
  */
 export const syncNeighborhood = internalAction({
   args: {
     name: v.string(),
     slug: v.string(),
-    source: v.string(), // "cron" | "manual"
+    source: v.string(),
   },
   handler: async (ctx, { name, slug, source }) => {
     const startedAt = Date.now();
 
-    // Log sync start
     await ctx.runMutation(internal.sync.logSyncStart, {
       neighborhoodSlug: slug,
       startedAt,
@@ -29,26 +34,21 @@ export const syncNeighborhood = internalAction({
     });
 
     try {
-      // 1. Fetch neighborhood boundary
-      const boundaryGeoJson = await fetchNeighborhoodBoundary(name);
-
-      // Parse boundary to extract geometry for spatial queries
-      const boundary = JSON.parse(boundaryGeoJson);
-      const geometry =
-        boundary.features?.[0]?.geometry
-          ? JSON.stringify(boundary.features[0].geometry)
-          : undefined;
-
-      if (!geometry) {
-        throw new Error(`No boundary geometry found for ${name}`);
+      // 1. Fetch neighborhood boundary GeoJSON (for map display)
+      let boundaryGeoJson: string | undefined;
+      try {
+        boundaryGeoJson = await fetchNeighborhoodBoundary(name);
+      } catch {
+        boundaryGeoJson = undefined;
       }
 
-      // 2. Query MPROP metrics within boundary
+      // 2. Query MPROP citywide metrics
+      // NOTE: These are citywide until we build tract→neighborhood mapping
       const [totalProperties, ownerOccupiedCount, avgAssessedValue] =
         await Promise.all([
-          spatialCount(ENDPOINTS.mprop, "1=1", geometry),
-          spatialCount(ENDPOINTS.mprop, "OWN_OCPD = 'O'", geometry),
-          queryStats(ENDPOINTS.mprop, "C_A_TOTAL", "avg", "1=1"),
+          queryCount(ENDPOINTS.mprop, "1=1"),
+          queryCount(ENDPOINTS.mprop, "OWN_OCPD = 'O'"),
+          queryStats(ENDPOINTS.mprop, "C_A_TOTAL", "avg", "C_A_TOTAL > 0"),
         ]);
 
       const ownerOccupiedRate =
@@ -56,52 +56,31 @@ export const syncNeighborhood = internalAction({
           ? Math.round((ownerOccupiedCount / totalProperties) * 100)
           : 0;
 
-      // 3. Query vacancy from Strong Neighborhoods
-      const vacantBuildingCount = await spatialCount(
-        ENDPOINTS.strongNeighborhoods,
-        "1=1",
-        geometry,
-      );
-
-      // 4. Query foreclosures
-      const [foreclosureCityCount, foreclosureBankCount] = await Promise.all([
-        spatialCount(ENDPOINTS.foreclosedCityOwned, "1=1", geometry),
-        spatialCount(ENDPOINTS.foreclosedBankOwned, "1=1", geometry),
-      ]);
-
-      // 5. Query crime (aggregate across all 10 layers)
-      // MPD Monthly has layers 0-9 for different crime types
-      let part1CrimeCount = 0;
-      const crimeByType: Record<string, number> = {};
-      const crimeTypes = [
-        "Homicide",
-        "Arson",
-        "Sexual Assault",
-        "Criminal Damage",
-        "Robbery",
-        "Burglary",
-        "Theft",
-        "Vehicle Theft",
-        "Locked Vehicle",
-        "Assault",
-      ];
-
-      for (let i = 0; i < crimeTypes.length; i++) {
-        try {
-          const count = await spatialCount(
-            `${ENDPOINTS.crimeMonthly}/${i}`,
-            "1=1",
-            geometry,
-          );
-          crimeByType[crimeTypes[i]] = count;
-          part1CrimeCount += count;
-        } catch {
-          // Some layers may not respond — skip
-          crimeByType[crimeTypes[i]] = 0;
-        }
+      // 3. Vacancy from Strong Neighborhoods (citywide)
+      let vacantBuildingCount: number | undefined;
+      try {
+        vacantBuildingCount = await queryCount(
+          ENDPOINTS.strongNeighborhoods,
+          "1=1",
+        );
+      } catch {
+        vacantBuildingCount = undefined;
       }
 
-      // 6. Upsert neighborhood record
+      // 4. Foreclosures (citywide, split by type)
+      let foreclosureCityCount: number | undefined;
+      let foreclosureBankCount: number | undefined;
+      try {
+        [foreclosureCityCount, foreclosureBankCount] = await Promise.all([
+          queryCount(ENDPOINTS.foreclosedCityOwned, "1=1"),
+          queryCount(ENDPOINTS.foreclosedBankOwned, "1=1"),
+        ]);
+      } catch {
+        foreclosureCityCount = undefined;
+        foreclosureBankCount = undefined;
+      }
+
+      // 5. Upsert neighborhood record
       await ctx.runMutation(internal.sync.upsertNeighborhood, {
         name,
         slug,
@@ -110,17 +89,14 @@ export const syncNeighborhood = internalAction({
         ownerOccupiedCount,
         ownerOccupiedRate,
         medianAssessedValue: avgAssessedValue ?? undefined,
-        part1CrimeCount,
-        part1CrimeByType: JSON.stringify(crimeByType),
+        avgAssessedValue: avgAssessedValue ?? undefined,
         vacantBuildingCount,
         foreclosureCityCount,
         foreclosureBankCount,
-        avgAssessedValue: avgAssessedValue ?? undefined,
         lastSyncAt: Date.now(),
         lastSyncStatus: "success",
       });
 
-      // Log sync success
       await ctx.runMutation(internal.sync.logSyncComplete, {
         neighborhoodSlug: slug,
         startedAt,
@@ -142,7 +118,6 @@ export const syncNeighborhood = internalAction({
   },
 });
 
-/** Internal mutation: upsert a neighborhood's metrics. */
 export const upsertNeighborhood = internalMutation({
   args: {
     name: v.string(),
@@ -168,7 +143,6 @@ export const upsertNeighborhood = internalMutation({
       .first();
 
     if (existing) {
-      // Save current metrics as previousPeriod before overwriting
       const previousPeriod = JSON.stringify({
         totalProperties: existing.totalProperties,
         ownerOccupiedRate: existing.ownerOccupiedRate,
@@ -179,10 +153,7 @@ export const upsertNeighborhood = internalMutation({
         snapshotAt: existing.lastSyncAt,
       });
 
-      await ctx.db.patch(existing._id, {
-        ...args,
-        previousPeriod,
-      });
+      await ctx.db.patch(existing._id, { ...args, previousPeriod });
     } else {
       await ctx.db.insert("neighborhoods", {
         ...args,
@@ -197,7 +168,6 @@ export const upsertNeighborhood = internalMutation({
   },
 });
 
-/** Log sync start. */
 export const logSyncStart = internalMutation({
   args: {
     neighborhoodSlug: v.string(),
@@ -205,14 +175,10 @@ export const logSyncStart = internalMutation({
     source: v.string(),
   },
   handler: async (ctx, args) => {
-    await ctx.db.insert("syncLogs", {
-      ...args,
-      status: "running",
-    });
+    await ctx.db.insert("syncLogs", { ...args, status: "running" });
   },
 });
 
-/** Log sync completion. */
 export const logSyncComplete = internalMutation({
   args: {
     neighborhoodSlug: v.string(),
@@ -221,7 +187,6 @@ export const logSyncComplete = internalMutation({
     error: v.optional(v.string()),
   },
   handler: async (ctx, { neighborhoodSlug, startedAt, status, error }) => {
-    // Find the running log entry
     const logs = await ctx.db
       .query("syncLogs")
       .withIndex("by_neighborhood", (q) =>
@@ -242,6 +207,3 @@ export const logSyncComplete = internalMutation({
     }
   },
 });
-
-// Need this import for internal references
-import { internal } from "./_generated/api";

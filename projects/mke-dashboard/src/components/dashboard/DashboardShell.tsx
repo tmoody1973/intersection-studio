@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 import { MetricsPanel } from "./MetricsPanel";
@@ -9,6 +10,13 @@ import { useNeighborhoodData } from "@/hooks/useNeighborhoodData";
 import { TARGET_NEIGHBORHOODS } from "@/lib/constants";
 import type { CategoryId } from "@/types/metrics";
 
+// Dynamic import for Mapbox (requires WebGL, can't SSR)
+const DashboardMap = dynamic(
+  () =>
+    import("@/components/map/DashboardMap").then((mod) => mod.DashboardMap),
+  { ssr: false, loading: () => <div className="h-full bg-limestone/10 rounded-lg animate-pulse" /> },
+);
+
 function toSlug(name: string): string {
   return name.toLowerCase().replace(/\s+/g, "-");
 }
@@ -16,19 +24,28 @@ function toSlug(name: string): string {
 export function DashboardShell() {
   const [selectedSlug, setSelectedSlug] = useState("harambee");
   const [activeCategory, setActiveCategory] = useState<CategoryId>("community");
-  const { metrics, neighborhoodName } = useNeighborhoodData(selectedSlug);
+  const [showHOLC, setShowHOLC] = useState(false);
+  const { metrics, isLoading, neighborhoodName } =
+    useNeighborhoodData(selectedSlug);
 
-  const handleAskAI = useCallback((metricId: string, label: string) => {
-    // The CopilotSidebar handles the chat UI —
-    // this could auto-open the sidebar with a pre-filled prompt
-    console.info(
-      `[CopilotKit] Ask AI about: ${label} (${metricId}) in ${selectedSlug}`,
-    );
+  // Parse boundary GeoJSON from Convex data for the map
+  const boundaryData = useMemo(() => {
+    // This would come from the Convex neighborhood record
+    // For now, we'll let the map load boundaries from the DCD layer
+    return undefined;
   }, [selectedSlug]);
+
+  const handleAskAI = useCallback(
+    (metricId: string, label: string) => {
+      console.info(
+        `[CopilotKit] Ask AI about: ${label} (${metricId}) in ${selectedSlug}`,
+      );
+    },
+    [selectedSlug],
+  );
 
   return (
     <>
-      {/* Register dashboard state with CopilotKit */}
       <DashboardContext
         neighborhoodName={neighborhoodName}
         neighborhoodSlug={selectedSlug}
@@ -38,9 +55,9 @@ export function DashboardShell() {
         onSwitchCategory={setActiveCategory}
       />
 
-      <div className="mx-auto w-full max-w-5xl">
-        {/* Neighborhood selector */}
-        <div className="mb-6 flex items-center gap-3">
+      <div className="mx-auto w-full max-w-7xl">
+        {/* Neighborhood selector + HOLC toggle */}
+        <div className="mb-4 flex flex-wrap items-center gap-3">
           <label
             htmlFor="neighborhood-select"
             className="text-sm font-medium text-iron"
@@ -62,18 +79,36 @@ export function DashboardShell() {
           <span className="text-xs text-limestone">
             Viewing: {neighborhoodName}
           </span>
+          <label className="ml-auto flex items-center gap-2 text-xs text-foundry">
+            <input
+              type="checkbox"
+              checked={showHOLC}
+              onChange={(e) => setShowHOLC(e.target.checked)}
+              className="h-4 w-4 rounded border-limestone/30 text-lakeshore focus:ring-lakeshore"
+            />
+            Show 1930s Redlining
+          </label>
         </div>
 
-        {/* Metrics Panel: Category Tabs + Metric Cards */}
-        <MetricsPanel
-          metrics={metrics}
-          activeCategory={activeCategory}
-          onCategoryChange={setActiveCategory}
-          onAskAI={handleAskAI}
-        />
+        {/* Desktop: Map + Metrics side by side */}
+        <div className="flex flex-col gap-4 lg:flex-row">
+          {/* Map */}
+          <div className="h-[300px] w-full overflow-hidden rounded-lg border border-limestone/20 lg:h-[600px] lg:w-[400px] lg:flex-shrink-0">
+            <DashboardMap showHOLC={showHOLC} />
+          </div>
+
+          {/* Metrics Panel */}
+          <div className="min-w-0 flex-1">
+            <MetricsPanel
+              metrics={metrics}
+              activeCategory={activeCategory}
+              onCategoryChange={setActiveCategory}
+              onAskAI={handleAskAI}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* CopilotKit AI Chat Sidebar */}
       <CopilotSidebar
         labels={{
           title: "Ask about Milwaukee",

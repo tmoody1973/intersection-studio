@@ -11,7 +11,7 @@ const runtime = new CopilotRuntime({
 export const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
   runtime,
   serviceAdapter: new AnthropicAdapter({
-    model: "claude-sonnet-4-6",
+    model: "claude-sonnet-4-5",
   }),
   endpoint: "/api/copilotkit",
 });
