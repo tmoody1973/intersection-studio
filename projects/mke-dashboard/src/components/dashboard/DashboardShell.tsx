@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
-import { MetricsPanel } from "./MetricsPanel";
+import { CategoryTabs } from "./CategoryTabs";
+import { CategoryView } from "./CategoryView";
+import { IndicatorRow } from "./IndicatorRow";
 import { DashboardContext } from "@/copilot/DashboardContext";
 import { DashboardTools } from "@/copilot/DashboardTools";
 import { useNeighborhoodData } from "@/hooks/useNeighborhoodData";
-import { TARGET_NEIGHBORHOODS } from "@/lib/constants";
+import { TARGET_NEIGHBORHOODS, DEFAULT_CATEGORIES } from "@/lib/constants";
 import type { CategoryId } from "@/types/metrics";
 
 const DashboardMap = dynamic(
@@ -27,8 +29,16 @@ export function DashboardShell() {
   const [activeCategory, setActiveCategory] =
     useState<CategoryId>("community");
   const [showHOLC, setShowHOLC] = useState(false);
-  const { metrics, isLoading, neighborhoodName } =
-    useNeighborhoodData(selectedSlug);
+  const {
+    metrics,
+    isLoading,
+    neighborhoodName,
+    crimeByType,
+    crimeByMonth,
+    serviceRequestsByType,
+    housingAge,
+    raw,
+  } = useNeighborhoodData(selectedSlug);
 
   const handleAskAI = useCallback(
     (metricId: string, label: string) => {
@@ -38,6 +48,17 @@ export function DashboardShell() {
     },
     [selectedSlug],
   );
+
+  // Key indicators for the overview row (like Kensington Home tab)
+  const keyIndicators = raw
+    ? [
+        { label: "Population", value: raw.population ?? null, unit: "residents" },
+        { label: "Median Income", value: raw.medianIncome ? `$${raw.medianIncome.toLocaleString()}` : null },
+        { label: "Poverty Rate", value: raw.povertyRate != null ? `${raw.povertyRate}%` : null },
+        { label: "Properties", value: raw.totalProperties ?? null, unit: "parcels" },
+        { label: "Owner-Occupied", value: raw.ownerOccupiedRate != null ? `${raw.ownerOccupiedRate}%` : null },
+      ]
+    : [];
 
   return (
     <>
@@ -49,8 +70,6 @@ export function DashboardShell() {
         onSwitchNeighborhood={setSelectedSlug}
         onSwitchCategory={setActiveCategory}
       />
-
-      {/* Register Generative UI tools with CopilotKit */}
       <DashboardTools />
 
       <div className="mx-auto w-full max-w-7xl">
@@ -74,9 +93,6 @@ export function DashboardShell() {
               </option>
             ))}
           </select>
-          <span className="text-xs text-limestone">
-            Viewing: {neighborhoodName}
-          </span>
           <label className="ml-auto flex items-center gap-2 text-xs text-foundry">
             <input
               type="checkbox"
@@ -88,10 +104,18 @@ export function DashboardShell() {
           </label>
         </div>
 
-        {/* Desktop: Map + Metrics side by side */}
+        {/* Key Indicators Row (like Kensington Home tab) */}
+        {keyIndicators.length > 0 && (
+          <IndicatorRow
+            indicators={keyIndicators}
+            neighborhoodName={neighborhoodName}
+          />
+        )}
+
+        {/* Main layout: Map + Category Content */}
         <div className="flex flex-col gap-4 lg:flex-row">
           {/* Map */}
-          <div className="h-[300px] w-full overflow-hidden rounded-lg border border-limestone/20 lg:h-[600px] lg:w-[400px] lg:flex-shrink-0">
+          <div className="h-[300px] w-full overflow-hidden rounded-lg border border-limestone/20 lg:h-auto lg:min-h-[500px] lg:w-[380px] lg:flex-shrink-0">
             <DashboardMap
               selectedSlug={selectedSlug}
               showHOLC={showHOLC}
@@ -99,14 +123,32 @@ export function DashboardShell() {
             />
           </div>
 
-          {/* Metrics Panel */}
+          {/* Category tabs + content */}
           <div className="min-w-0 flex-1">
-            <MetricsPanel
-              metrics={metrics}
+            <CategoryTabs
+              categories={DEFAULT_CATEGORIES}
               activeCategory={activeCategory}
-              onCategoryChange={setActiveCategory}
-              onAskAI={handleAskAI}
+              onChange={setActiveCategory}
+              showCounts
             />
+
+            <div
+              role="tabpanel"
+              id={`panel-${activeCategory}`}
+              aria-labelledby={`tab-${activeCategory}`}
+              tabIndex={0}
+              className="mt-4"
+            >
+              <CategoryView
+                category={activeCategory}
+                metrics={metrics}
+                crimeByType={crimeByType}
+                crimeByMonth={crimeByMonth}
+                serviceRequestsByType={serviceRequestsByType}
+                housingAge={housingAge}
+                onAskAI={handleAskAI}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -114,7 +156,7 @@ export function DashboardShell() {
       <CopilotSidebar
         labels={{
           title: "Ask about Milwaukee",
-          initial: `Hi! I can help you understand neighborhood data for ${neighborhoodName}. Try asking:\n\n• How many vacant properties are there?\n• What's the crime trend?\n• Compare this neighborhood to Sherman Park`,
+          initial: `Hi! I can help you understand neighborhood data for ${neighborhoodName}. Try asking:\n\n• How many vacant properties are there?\n• Show me crime trends\n• Compare this neighborhood to Sherman Park`,
         }}
         defaultOpen={false}
       />
