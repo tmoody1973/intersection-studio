@@ -9,11 +9,20 @@ import type { CategoryId, MetricCardProps } from "@/types/metrics";
 
 interface MetricsPanelProps {
   metrics: MetricCardProps[];
+  activeCategory?: CategoryId;
+  onCategoryChange?: (category: CategoryId) => void;
   onAskAI?: (metricId: string, label: string) => void;
 }
 
-export function MetricsPanel({ metrics, onAskAI }: MetricsPanelProps) {
-  const [activeCategory, setActiveCategory] = useState<CategoryId>("community");
+export function MetricsPanel({
+  metrics,
+  activeCategory: controlledCategory,
+  onCategoryChange,
+  onAskAI,
+}: MetricsPanelProps) {
+  const [internalCategory, setInternalCategory] = useState<CategoryId>("community");
+  const activeCategory = controlledCategory ?? internalCategory;
+  const setActiveCategory = onCategoryChange ?? setInternalCategory;
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const handleToggleExpand = useCallback((id: string) => {
