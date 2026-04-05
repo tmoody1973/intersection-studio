@@ -94,6 +94,45 @@ export interface LiquorLicenseAggregation {
   totalLicenses: number;
 }
 
+// --- Building Permits (Investment) ---
+
+export interface PermitInvestmentAggregation {
+  totalPermitInvestment: number;
+  newConstructionCount: number;
+}
+
+/**
+ * Aggregate building permit investment from CKAN.
+ * Permits lack coordinates, so this returns citywide totals for now.
+ */
+export async function fetchPermitInvestment(): Promise<PermitInvestmentAggregation> {
+  const records = await ckanFetchAll(
+    "828e9630-d7cb-42e4-960e-964eae916397",
+    10000,
+  );
+
+  let totalPermitInvestment = 0;
+  let newConstructionCount = 0;
+
+  for (const r of records) {
+    const cost = Number(r["Construction Total Cost"] ?? 0);
+    if (cost > 0) {
+      totalPermitInvestment += cost;
+    }
+    const permitType = String(r["Permit_Type"] ?? "");
+    if (permitType === "New Construction") {
+      newConstructionCount++;
+    }
+  }
+
+  return {
+    totalPermitInvestment: Math.round(totalPermitInvestment),
+    newConstructionCount,
+  };
+}
+
+// --- Liquor Licenses ---
+
 /**
  * Count liquor licenses in a neighborhood via taxkey matching.
  */

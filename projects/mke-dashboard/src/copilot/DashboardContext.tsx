@@ -3,11 +3,26 @@
 import { useCopilotReadable, useCopilotAction } from "@copilotkit/react-core";
 import type { MetricCardProps, CategoryId } from "@/types/metrics";
 
+interface NeighborhoodRaw {
+  tidDistricts?: string;
+  bidDistricts?: string;
+  tinDistricts?: string;
+  opportunityZones?: string;
+  nidDistricts?: string;
+  totalPermitInvestment?: number;
+  newConstructionCount?: number;
+  propertySalesCount?: number;
+  medianSalePrice?: number;
+  totalSalesVolume?: number;
+  liquorLicenseCount?: number;
+}
+
 interface DashboardContextProps {
   neighborhoodName: string;
   neighborhoodSlug: string;
   activeCategory: CategoryId;
   metrics: MetricCardProps[];
+  raw?: NeighborhoodRaw | null;
   onSwitchNeighborhood: (slug: string) => void;
   onSwitchCategory: (category: CategoryId) => void;
 }
@@ -16,11 +31,21 @@ interface DashboardContextProps {
  * Makes dashboard state readable by CopilotKit and defines actions
  * the AI can take (switch neighborhood, switch category, etc.)
  */
+function parseJsonField(value?: string): unknown[] {
+  if (!value) return [];
+  try {
+    return JSON.parse(value);
+  } catch {
+    return [];
+  }
+}
+
 export function DashboardContext({
   neighborhoodName,
   neighborhoodSlug,
   activeCategory,
   metrics,
+  raw,
   onSwitchNeighborhood,
   onSwitchCategory,
 }: DashboardContextProps) {
@@ -53,6 +78,29 @@ export function DashboardContext({
       source: m.source.name,
       lastUpdated: m.source.lastUpdated,
     })),
+  });
+
+  // Make economic development data readable
+  useCopilotReadable({
+    description:
+      "Economic development zones and investment data for the current neighborhood",
+    value: {
+      zones: {
+        tid: parseJsonField(raw?.tidDistricts),
+        bid: parseJsonField(raw?.bidDistricts),
+        tin: parseJsonField(raw?.tinDistricts),
+        oz: parseJsonField(raw?.opportunityZones),
+        nid: parseJsonField(raw?.nidDistricts),
+      },
+      investment: {
+        permitTotal: raw?.totalPermitInvestment ?? null,
+        newConstruction: raw?.newConstructionCount ?? null,
+        salesCount: raw?.propertySalesCount ?? null,
+        medianPrice: raw?.medianSalePrice ?? null,
+        totalSalesVolume: raw?.totalSalesVolume ?? null,
+        liquorLicenses: raw?.liquorLicenseCount ?? null,
+      },
+    },
   });
 
   // Action: Switch neighborhood

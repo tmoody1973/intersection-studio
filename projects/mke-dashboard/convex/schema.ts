@@ -58,7 +58,17 @@ export default defineSchema({
     propertySalesCount: v.optional(v.number()),
     medianSalePrice: v.optional(v.number()),
     totalSalesVolume: v.optional(v.number()),
+    propertySalesByType: v.optional(v.string()), // JSON
     liquorLicenseCount: v.optional(v.number()),
+    totalPermitInvestment: v.optional(v.number()),
+    newConstructionCount: v.optional(v.number()),
+
+    // Development Zones (ArcGIS special_districts)
+    tidDistricts: v.optional(v.string()), // JSON
+    bidDistricts: v.optional(v.string()), // JSON
+    tinDistricts: v.optional(v.string()), // JSON
+    opportunityZones: v.optional(v.string()), // JSON
+    nidDistricts: v.optional(v.string()), // JSON
 
     // Community Resources
     libraryCount: v.optional(v.number()),

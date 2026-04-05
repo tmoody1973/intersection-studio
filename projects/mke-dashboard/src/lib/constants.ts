@@ -21,6 +21,12 @@ export const ARCGIS_URLS = {
   // Planning
   neighborhoods: `${ARCGIS_BASE}/planning/special_districts/MapServer/4`,
   zoning: `${ARCGIS_BASE}/planning/zoning/MapServer/11`,
+  // Development zone districts
+  tidDistricts: `${ARCGIS_BASE}/planning/special_districts/MapServer/8`,
+  bidDistricts: `${ARCGIS_BASE}/planning/special_districts/MapServer/3`,
+  tinDistricts: `${ARCGIS_BASE}/planning/special_districts/MapServer/13`,
+  opportunityZones: `${ARCGIS_BASE}/planning/special_districts/MapServer/9`,
+  nidDistricts: `${ARCGIS_BASE}/planning/special_districts/MapServer/5`,
   // Quality of Life
   strongNeighborhoods: `${ARCGIS_BASE}/StrongNeighborhood/StrongNeighborhood/MapServer/0`,
   // Community
@@ -89,6 +95,7 @@ export const CATEGORY_COLORS = {
   publicSafety: { light: "#B84233", dark: "#F87171" },
   qualityOfLife: { light: "#2563EB", dark: "#60A5FA" },
   wellness: { light: "#7C3AED", dark: "#A78BFA" },
+  development: { light: "#C4960C", dark: "#FCD34D" },
 } as const;
 
 export const DEFAULT_CATEGORIES: CategoryTab[] = [
@@ -123,6 +130,14 @@ export const DEFAULT_CATEGORIES: CategoryTab[] = [
     color: CATEGORY_COLORS.wellness.light,
     colorDark: CATEGORY_COLORS.wellness.dark,
     metricCount: 1,
+  },
+  {
+    id: "development",
+    label: "Development",
+    icon: "Landmark",
+    color: CATEGORY_COLORS.development.light,
+    colorDark: CATEGORY_COLORS.development.dark,
+    metricCount: 4,
   },
 ];
 

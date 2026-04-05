@@ -2,7 +2,8 @@ export type CategoryId =
   | "community"
   | "publicSafety"
   | "qualityOfLife"
-  | "wellness";
+  | "wellness"
+  | "development";
 
 export interface MetricTrend {
   direction: "improving" | "worsening" | "stable";
@@ -54,7 +55,7 @@ export interface MetricCardProps {
 export interface CategoryTab {
   id: CategoryId;
   label: string;
-  icon: "CircleDot" | "Shield" | "Building2" | "Heart";
+  icon: "CircleDot" | "Shield" | "Building2" | "Heart" | "Landmark";
   color: string;
   colorDark: string;
   metricCount?: number;

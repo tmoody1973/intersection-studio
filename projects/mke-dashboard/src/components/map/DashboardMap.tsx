@@ -23,16 +23,18 @@ interface DataLayerConfig {
   color: string;
   radius: number;
   opacity: number;
+  layerType: "point" | "polygon";
 }
 
 const DATA_LAYERS: DataLayerConfig[] = [
   {
     id: "crime",
     label: "Crime Incidents",
-    url: `${ARCGIS_URLS.crimeMonthly}/4/query`, // Layer 4 = Robbery (representative)
+    url: `${ARCGIS_URLS.crimeMonthly}/4/query`,
     color: "#B91C1C",
     radius: 4,
     opacity: 0.7,
+    layerType: "point",
   },
   {
     id: "foreclosures",
@@ -41,6 +43,7 @@ const DATA_LAYERS: DataLayerConfig[] = [
     color: "#7F1D1D",
     radius: 5,
     opacity: 0.6,
+    layerType: "point",
   },
   {
     id: "vacant",
@@ -49,6 +52,7 @@ const DATA_LAYERS: DataLayerConfig[] = [
     color: "#D97706",
     radius: 5,
     opacity: 0.6,
+    layerType: "point",
   },
   {
     id: "schools",
@@ -57,6 +61,7 @@ const DATA_LAYERS: DataLayerConfig[] = [
     color: "#1D4ED8",
     radius: 6,
     opacity: 0.8,
+    layerType: "point",
   },
   {
     id: "libraries",
@@ -65,6 +70,7 @@ const DATA_LAYERS: DataLayerConfig[] = [
     color: "#7C3AED",
     radius: 7,
     opacity: 0.9,
+    layerType: "point",
   },
   {
     id: "parks",
@@ -73,6 +79,35 @@ const DATA_LAYERS: DataLayerConfig[] = [
     color: "#15803D",
     radius: 5,
     opacity: 0.6,
+    layerType: "point",
+  },
+  // Zone polygon layers
+  {
+    id: "tid",
+    label: "TID Zones",
+    url: `${ARCGIS_URLS.tidDistricts}/query`,
+    color: "#C4960C",
+    radius: 0,
+    opacity: 0.15,
+    layerType: "polygon",
+  },
+  {
+    id: "bid",
+    label: "BID Zones",
+    url: `${ARCGIS_URLS.bidDistricts}/query`,
+    color: "#1D4ED8",
+    radius: 0,
+    opacity: 0.15,
+    layerType: "polygon",
+  },
+  {
+    id: "opportunity",
+    label: "Opportunity Zones",
+    url: `${ARCGIS_URLS.opportunityZones}/query`,
+    color: "#7C3AED",
+    radius: 0,
+    opacity: 0.15,
+    layerType: "polygon",
   },
 ];
 
@@ -218,7 +253,12 @@ export function DashboardMap({
       const config = DATA_LAYERS.find((l) => l.id === layerId);
       if (!config) continue;
 
-      const url = buildSpatialGeoJsonUrl(config.url, currentEnvelope);
+      // Polygon layers fetch full extent; point layers use spatial envelope
+      const url =
+        config.layerType === "polygon"
+          ? `${config.url}?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=500`
+          : buildSpatialGeoJsonUrl(config.url, currentEnvelope);
+
       fetch(url)
         .then((res) => res.json())
         .then((data: GeoJSON.FeatureCollection) => {
@@ -233,8 +273,9 @@ export function DashboardMap({
   // Click handler for data points
   const handleClick = useCallback(
     (e: mapboxgl.MapLayerMouseEvent) => {
-      // Check data layers first
+      // Check point data layers first (skip polygon zones)
       for (const layer of DATA_LAYERS) {
+        if (layer.layerType === "polygon") continue;
         const features = e.target.queryRenderedFeatures(e.point, {
           layers: [`${layer.id}-points`],
         });
@@ -286,7 +327,12 @@ export function DashboardMap({
         boundaries
           ? [
               "neighborhood-fill",
-              ...activeLayers.map((id) => `${id}-points`),
+              ...activeLayers
+                .filter((id) => {
+                  const cfg = DATA_LAYERS.find((l) => l.id === id);
+                  return cfg?.layerType === "point";
+                })
+                .map((id) => `${id}-points`),
             ]
           : []
       }
@@ -388,10 +434,34 @@ export function DashboardMap({
         </Source>
       )}
 
-      {/* Dynamic data point layers */}
+      {/* Dynamic data layers (points + polygons) */}
       {DATA_LAYERS.map((config) => {
         const data = layerData[config.id];
         if (!data || !activeLayers.includes(config.id)) return null;
+
+        if (config.layerType === "polygon") {
+          return (
+            <Source key={config.id} id={config.id} type="geojson" data={data}>
+              <Layer
+                id={`${config.id}-fill`}
+                type="fill"
+                paint={{
+                  "fill-color": config.color,
+                  "fill-opacity": config.opacity,
+                }}
+              />
+              <Layer
+                id={`${config.id}-stroke`}
+                type="line"
+                paint={{
+                  "line-color": config.color,
+                  "line-width": 1.5,
+                  "line-opacity": 0.5,
+                }}
+              />
+            </Source>
+          );
+        }
 
         return (
           <Source key={config.id} id={config.id} type="geojson" data={data}>

@@ -17,7 +17,8 @@
     "community": "Zej Zog",
     "publicSafety": "Kev Nyab Xeeb",
     "qualityOfLife": "Zoo Lub Neej",
-    "wellness": "Kev Noj Qab Haus Huv"
+    "wellness": "Kev Noj Qab Haus Huv",
+    "development": "Kev Txhim Kho"
   },
   "metrics": {
     "totalProperties": "Tag Nrho Cov Vaj Tsev",
@@ -51,7 +52,14 @@
     "povertyRate": "Tus Nqi Txom Nyem",
     "unemployment": "Tus Nqi Tsis Muaj Hauj Lwm",
     "medianHomeValue": "Nqi Tsev Nruab Nrab",
-    "foodInspectionPassRate": "Tus Nqi Tshuaj Xyuas Zaub Mov"
+    "foodInspectionPassRate": "Tus Nqi Tshuaj Xyuas Zaub Mov",
+    "totalPermitInvestment": "Tag Nrho Kev Nqis Peev Ntawv Tso Cai",
+    "newConstruction": "Kev Tsim Tshiab",
+    "tidDistricts": "Cheeb Tsam TID",
+    "bidDistricts": "Cheeb Tsam BID",
+    "tinDistricts": "Cheeb Tsam TIN",
+    "opportunityZones": "Cheeb Tsam Kev Txhim Kho",
+    "nidDistricts": "Cheeb Tsam NID"
   },
   "units": {
     "parcels": "daim av",
@@ -60,7 +68,10 @@
     "incidents": "xwm txheej",
     "calls": "kev hu",
     "buildings": "tsev",
-    "schools": "tsev kawm ntawv"
+    "schools": "tsev kawm ntawv",
+    "licenses": "ntawv tso cai",
+    "sales": "kev muag",
+    "permits": "ntawv tso cai tsev"
   },
   "trends": {
     "improving": "zoo tuaj",

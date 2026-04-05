@@ -14,6 +14,7 @@ import type * as etl_census from "../etl/census.js";
 import type * as etl_community from "../etl/community.js";
 import type * as etl_csv from "../etl/csv.js";
 import type * as etl_economic from "../etl/economic.js";
+import type * as etl_zones from "../etl/zones.js";
 import type * as neighborhoods from "../neighborhoods.js";
 import type * as sync from "../sync.js";
 
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   "etl/community": typeof etl_community;
   "etl/csv": typeof etl_csv;
   "etl/economic": typeof etl_economic;
+  "etl/zones": typeof etl_zones;
   neighborhoods: typeof neighborhoods;
   sync: typeof sync;
 }>;

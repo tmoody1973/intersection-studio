@@ -23,7 +23,8 @@ import {
   aggregateForNeighborhood,
 } from "./etl/census";
 import { fetchCommunityResources } from "./etl/community";
-import { fetchPropertySales, fetchLiquorLicenses } from "./etl/economic";
+import { fetchPropertySales, fetchLiquorLicenses, fetchPermitInvestment } from "./etl/economic";
+import { fetchDevelopmentZones } from "./etl/zones";
 
 /**
  * DCD neighborhood names (uppercase, matching the boundaries layer).
@@ -301,7 +302,27 @@ export const syncNeighborhood = internalAction({
         console.error("Liquor licenses fetch failed:", e);
       }
 
-      // 12. Upsert with ALL data sources
+      // 12. Development zones (ArcGIS special_districts)
+      let zoneData: { tidDistricts?: string; bidDistricts?: string; tinDistricts?: string; opportunityZones?: string; nidDistricts?: string } = {};
+      try {
+        const zones = await fetchDevelopmentZones(envelope);
+        zoneData = zones;
+      } catch (e) {
+        console.error("Development zones fetch failed:", e);
+      }
+
+      // 13. Building permit investment (CKAN — citywide)
+      let totalPermitInvestment: number | undefined;
+      let newConstructionCount: number | undefined;
+      try {
+        const permits = await fetchPermitInvestment();
+        totalPermitInvestment = permits.totalPermitInvestment || undefined;
+        newConstructionCount = permits.newConstructionCount || undefined;
+      } catch (e) {
+        console.error("Permit investment fetch failed:", e);
+      }
+
+      // 14. Upsert with ALL data sources
       await ctx.runMutation(internal.sync.upsertNeighborhood, {
         name,
         slug,
@@ -342,6 +363,14 @@ export const syncNeighborhood = internalAction({
         medianSalePrice,
         totalSalesVolume,
         liquorLicenseCount,
+        totalPermitInvestment,
+        newConstructionCount,
+        // Development Zones
+        tidDistricts: zoneData.tidDistricts,
+        bidDistricts: zoneData.bidDistricts,
+        tinDistricts: zoneData.tinDistricts,
+        opportunityZones: zoneData.opportunityZones,
+        nidDistricts: zoneData.nidDistricts,
         // Community Resources
         libraryCount: community.libraryCount || undefined,
         parkCount: community.parkCount || undefined,
@@ -402,6 +431,14 @@ export const upsertNeighborhood = internalMutation({
     medianSalePrice: v.optional(v.number()),
     totalSalesVolume: v.optional(v.number()),
     liquorLicenseCount: v.optional(v.number()),
+    totalPermitInvestment: v.optional(v.number()),
+    newConstructionCount: v.optional(v.number()),
+    // Development Zones
+    tidDistricts: v.optional(v.string()),
+    bidDistricts: v.optional(v.string()),
+    tinDistricts: v.optional(v.string()),
+    opportunityZones: v.optional(v.string()),
+    nidDistricts: v.optional(v.string()),
     // Community Resources
     libraryCount: v.optional(v.number()),
     parkCount: v.optional(v.number()),

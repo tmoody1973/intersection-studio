@@ -17,7 +17,8 @@
     "community": "المجتمع",
     "publicSafety": "السلامة العامة",
     "qualityOfLife": "جودة الحياة",
-    "wellness": "العافية"
+    "wellness": "العافية",
+    "development": "التنمية"
   },
   "metrics": {
     "totalProperties": "إجمالي العقارات",
@@ -51,7 +52,14 @@
     "povertyRate": "معدل الفقر",
     "unemployment": "معدل البطالة",
     "medianHomeValue": "متوسط قيمة المنزل",
-    "foodInspectionPassRate": "معدل اجتياز فحص الغذاء"
+    "foodInspectionPassRate": "معدل اجتياز فحص الغذاء",
+    "totalPermitInvestment": "إجمالي استثمار التراخيص",
+    "newConstruction": "البناء الجديد",
+    "tidDistricts": "مناطق TID",
+    "bidDistricts": "مناطق BID",
+    "tinDistricts": "مناطق TIN",
+    "opportunityZones": "مناطق الفرص",
+    "nidDistricts": "مناطق NID"
   },
   "units": {
     "parcels": "قطع أراضي",
@@ -60,7 +68,10 @@
     "incidents": "حوادث",
     "calls": "مكالمات",
     "buildings": "مباني",
-    "schools": "مدارس"
+    "schools": "مدارس",
+    "licenses": "تراخيص",
+    "sales": "مبيعات",
+    "permits": "تصاريح"
   },
   "trends": {
     "improving": "تحسن",

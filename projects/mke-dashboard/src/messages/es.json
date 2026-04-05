@@ -17,7 +17,8 @@
     "community": "Comunidad",
     "publicSafety": "Seguridad Pública",
     "qualityOfLife": "Calidad de Vida",
-    "wellness": "Bienestar"
+    "wellness": "Bienestar",
+    "development": "Desarrollo"
   },
   "metrics": {
     "totalProperties": "Propiedades Totales",
@@ -51,7 +52,14 @@
     "povertyRate": "Tasa de Pobreza",
     "unemployment": "Tasa de Desempleo",
     "medianHomeValue": "Valor Medio de Vivienda",
-    "foodInspectionPassRate": "Tasa de Aprobación de Inspección Alimentaria"
+    "foodInspectionPassRate": "Tasa de Aprobación de Inspección Alimentaria",
+    "totalPermitInvestment": "Inversión Total en Permisos",
+    "newConstruction": "Nueva Construcción",
+    "tidDistricts": "Distritos TID",
+    "bidDistricts": "Distritos BID",
+    "tinDistricts": "Distritos TIN",
+    "opportunityZones": "Zonas de Oportunidad",
+    "nidDistricts": "Distritos NID"
   },
   "units": {
     "parcels": "parcelas",
@@ -60,7 +68,10 @@
     "incidents": "incidentes",
     "calls": "llamadas",
     "buildings": "edificios",
-    "schools": "escuelas"
+    "schools": "escuelas",
+    "licenses": "licencias",
+    "sales": "ventas",
+    "permits": "permisos"
   },
   "trends": {
     "improving": "mejorando",

@@ -34,6 +34,8 @@ const METRIC_LABELS: Record<string, { label: string; unit: string }> = {
   property_sales: { label: "propertySales", unit: "sales" },
   median_sale_price: { label: "medianSalePrice", unit: "dollars" },
   liquor_licenses: { label: "liquorLicenses", unit: "licenses" },
+  total_permit_investment: { label: "totalPermitInvestment", unit: "dollars" },
+  new_construction: { label: "newConstruction", unit: "permits" },
   poverty_rate: { label: "povertyRate", unit: "percent" },
   unemployment: { label: "unemployment", unit: "percent" },
   median_home_value: { label: "medianHomeValue", unit: "dollars" },
@@ -173,14 +175,21 @@ export function useNeighborhoodData(slug: string) {
     if (neighborhood.buildingPermitCount != null && neighborhood.buildingPermitCount > 0)
       add("building_permits", "Building Permits", neighborhood.buildingPermitCount, "permits", "qualityOfLife", "Building Permits CSV");
 
+    // --- Development ---
     if (neighborhood.propertySalesCount != null && neighborhood.propertySalesCount > 0)
-      add("property_sales", "Property Sales (2024)", neighborhood.propertySalesCount, "sales", "qualityOfLife", "Property Sales CKAN");
+      add("property_sales", "Property Sales (2024)", neighborhood.propertySalesCount, "sales", "development", "Property Sales CKAN");
 
     if (neighborhood.medianSalePrice != null)
-      add("median_sale_price", "Median Sale Price", neighborhood.medianSalePrice, "dollars", "qualityOfLife", "Property Sales CKAN");
+      add("median_sale_price", "Median Sale Price", neighborhood.medianSalePrice, "dollars", "development", "Property Sales CKAN");
 
     if (neighborhood.liquorLicenseCount != null && neighborhood.liquorLicenseCount > 0)
-      add("liquor_licenses", "Liquor Licenses", neighborhood.liquorLicenseCount, "licenses", "qualityOfLife", "Liquor Licenses CKAN");
+      add("liquor_licenses", "Liquor Licenses", neighborhood.liquorLicenseCount, "licenses", "development", "Liquor Licenses CKAN");
+
+    if ((neighborhood as Record<string, unknown>).totalPermitInvestment != null)
+      add("total_permit_investment", "Total Permit Investment", (neighborhood as Record<string, unknown>).totalPermitInvestment as number, "dollars", "development", "Building Permits CSV");
+
+    if ((neighborhood as Record<string, unknown>).newConstructionCount != null && ((neighborhood as Record<string, unknown>).newConstructionCount as number) > 0)
+      add("new_construction", "New Construction", (neighborhood as Record<string, unknown>).newConstructionCount as number, "permits", "development", "Building Permits CSV");
 
     // --- Wellness ---
     if (neighborhood.povertyRate != null)

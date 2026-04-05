@@ -5,6 +5,12 @@ import { GenericChart } from "@/components/charts/GenericChart";
 import { MetricCard } from "./MetricCard";
 import type { MetricCardProps, CategoryId } from "@/types/metrics";
 
+interface ZoneInfo {
+  name: string;
+  type: string;
+  active: boolean;
+}
+
 interface CategoryViewProps {
   category: CategoryId;
   metrics: MetricCardProps[];
@@ -12,6 +18,7 @@ interface CategoryViewProps {
   crimeByMonth?: Record<string, number> | null;
   serviceRequestsByType?: Record<string, number> | null;
   housingAge?: Record<string, number> | null;
+  zoneInfo?: ZoneInfo[];
   onAskAI?: (id: string, label: string) => void;
 }
 
@@ -26,6 +33,7 @@ export function CategoryView({
   crimeByMonth,
   serviceRequestsByType,
   housingAge,
+  zoneInfo,
   onAskAI,
 }: CategoryViewProps) {
   const filteredMetrics = metrics.filter((m) => m.category === category);
@@ -180,6 +188,57 @@ export function CategoryView({
               yAxisKey="value"
               color="#7C3AED"
             />
+          )}
+        </div>
+      )}
+
+      {category === "development" && (
+        <div className="space-y-4">
+          {/* Development metrics chart */}
+          {filteredMetrics.length >= 2 && (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <GenericChart
+                title="Development Indicators"
+                chartType="bar"
+                data={filteredMetrics.map((m) => ({
+                  name: m.label,
+                  value: m.value ?? 0,
+                }))}
+                xAxisKey="name"
+                yAxisKey="value"
+                color="#C4960C"
+              />
+            </div>
+          )}
+
+          {/* Zone info cards */}
+          {zoneInfo && zoneInfo.length > 0 && (
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-foundry dark:text-limestone">
+                Development Zones
+              </h3>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {zoneInfo.map((zone) => (
+                  <div
+                    key={`${zone.type}-${zone.name}`}
+                    className="rounded-lg border border-limestone/20 bg-white/50 p-4 dark:bg-[#292524]/50"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block h-2 w-2 rounded-full bg-[#C4960C]" />
+                      <span className="text-xs font-medium uppercase tracking-wider text-iron">
+                        {zone.type}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm font-semibold text-foundry dark:text-limestone">
+                      {zone.name}
+                    </p>
+                    <p className="mt-0.5 text-xs text-limestone">
+                      {zone.active ? "Active" : "Inactive"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}

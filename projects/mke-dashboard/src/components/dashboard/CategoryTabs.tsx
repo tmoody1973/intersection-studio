@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { CircleDot, Shield, Building2, Heart } from "lucide-react";
+import { CircleDot, Shield, Building2, Heart, Landmark } from "lucide-react";
 import type { CategoryTabsProps, CategoryTab, CategoryId } from "@/types/metrics";
 
 const ICON_MAP = {
@@ -10,6 +10,7 @@ const ICON_MAP = {
   Shield,
   Building2,
   Heart,
+  Landmark,
 } as const;
 
 export function CategoryTabs({

@@ -10,6 +10,7 @@ import { CategoryView } from "./CategoryView";
 import { IndicatorRow } from "./IndicatorRow";
 import { DashboardContext } from "@/copilot/DashboardContext";
 import { DashboardTools } from "@/copilot/DashboardTools";
+import { MKE_ECONOMIC_INSTRUCTIONS } from "@/copilot/economic-instructions";
 import { useNeighborhoodData } from "@/hooks/useNeighborhoodData";
 import { LayerToggles } from "@/components/map/LayerToggles";
 import { TARGET_NEIGHBORHOODS, DEFAULT_CATEGORIES } from "@/lib/constants";
@@ -92,6 +93,7 @@ export function DashboardShell() {
         neighborhoodSlug={selectedSlug}
         activeCategory={activeCategory}
         metrics={metrics}
+        raw={raw}
         onSwitchNeighborhood={setSelectedSlug}
         onSwitchCategory={setActiveCategory}
       />
@@ -181,6 +183,7 @@ export function DashboardShell() {
       </div>
 
       <CopilotSidebar
+        instructions={MKE_ECONOMIC_INSTRUCTIONS}
         labels={{
           title: tChat("title"),
           initial: tChat("initial"),
