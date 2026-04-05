@@ -62,6 +62,8 @@ export default defineSchema({
     liquorLicenseCount: v.optional(v.number()),
     totalPermitInvestment: v.optional(v.number()),
     newConstructionCount: v.optional(v.number()),
+    investmentByYear: v.optional(v.string()), // JSON: {"2020": 5000000, ...}
+    permitsByYear: v.optional(v.string()), // JSON: {"2020": 45, ...}
 
     // Development Zones (ArcGIS special_districts)
     tidDistricts: v.optional(v.string()), // JSON

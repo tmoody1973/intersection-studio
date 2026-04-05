@@ -63,6 +63,8 @@ export function DashboardShell() {
     crimeByMonth,
     serviceRequestsByType,
     housingAge,
+    investmentByYear,
+    permitsByYear,
     raw,
   } = useNeighborhoodData(selectedSlug);
 
@@ -175,6 +177,8 @@ export function DashboardShell() {
                 crimeByMonth={crimeByMonth}
                 serviceRequestsByType={serviceRequestsByType}
                 housingAge={housingAge}
+                investmentByYear={investmentByYear}
+                permitsByYear={permitsByYear}
                 onAskAI={handleAskAI}
               />
             </div>

@@ -64,6 +64,16 @@ export function useNeighborhoodData(slug: string) {
     try { return JSON.parse(neighborhood.housingAge) as Record<string, number>; } catch { return null; }
   }, [neighborhood?.housingAge]);
 
+  const investmentByYear = useMemo(() => {
+    if (!neighborhood?.investmentByYear) return null;
+    try { return JSON.parse(neighborhood.investmentByYear) as Record<string, number>; } catch { return null; }
+  }, [neighborhood?.investmentByYear]);
+
+  const permitsByYear = useMemo(() => {
+    if (!neighborhood?.permitsByYear) return null;
+    try { return JSON.parse(neighborhood.permitsByYear) as Record<string, number>; } catch { return null; }
+  }, [neighborhood?.permitsByYear]);
+
   const serviceRequestsByType = useMemo(() => {
     if (!neighborhood?.serviceRequestsByType) return null;
     try { return JSON.parse(neighborhood.serviceRequestsByType) as Record<string, number>; } catch { return null; }
@@ -217,6 +227,8 @@ export function useNeighborhoodData(slug: string) {
     crimeByMonth,
     housingAge,
     serviceRequestsByType,
+    investmentByYear,
+    permitsByYear,
     raw: neighborhood,
   };
 }

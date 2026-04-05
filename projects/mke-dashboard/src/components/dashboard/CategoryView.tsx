@@ -19,6 +19,8 @@ interface CategoryViewProps {
   serviceRequestsByType?: Record<string, number> | null;
   housingAge?: Record<string, number> | null;
   zoneInfo?: ZoneInfo[];
+  investmentByYear?: Record<string, number> | null;
+  permitsByYear?: Record<string, number> | null;
   onAskAI?: (id: string, label: string) => void;
 }
 
@@ -34,6 +36,8 @@ export function CategoryView({
   serviceRequestsByType,
   housingAge,
   zoneInfo,
+  investmentByYear,
+  permitsByYear,
   onAskAI,
 }: CategoryViewProps) {
   const filteredMetrics = metrics.filter((m) => m.category === category);
@@ -194,6 +198,36 @@ export function CategoryView({
 
       {category === "development" && (
         <div className="space-y-4">
+          {/* Investment timeline charts */}
+          {(investmentByYear || permitsByYear) && (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {permitsByYear && Object.keys(permitsByYear).length > 1 && (
+                <GenericChart
+                  title="Building Permits by Year"
+                  chartType="area"
+                  data={Object.entries(permitsByYear)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([year, count]) => ({ year, count }))}
+                  xAxisKey="year"
+                  yAxisKey="count"
+                  color="#C4960C"
+                />
+              )}
+              {investmentByYear && Object.keys(investmentByYear).length > 1 && (
+                <GenericChart
+                  title="Construction Investment by Year ($)"
+                  chartType="area"
+                  data={Object.entries(investmentByYear)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([year, amount]) => ({ year, amount: Math.round(amount / 1000) }))}
+                  xAxisKey="year"
+                  yAxisKey="amount"
+                  color="#1A6B52"
+                />
+              )}
+            </div>
+          )}
+
           {/* Development metrics chart */}
           {filteredMetrics.length >= 2 && (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

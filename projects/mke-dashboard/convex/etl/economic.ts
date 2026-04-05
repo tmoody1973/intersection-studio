@@ -100,6 +100,8 @@ export interface PermitInvestmentAggregation {
   totalPermitInvestment: number;
   newConstructionCount: number;
   permitCount: number;
+  investmentByYear: Record<string, number>;
+  permitsByYear: Record<string, number>;
 }
 
 /**
@@ -159,12 +161,13 @@ export async function fetchPermitInvestment(
   let totalPermitInvestment = 0;
   let newConstructionCount = 0;
   let permitCount = 0;
+  const investmentByYear: Record<string, number> = {};
+  const permitsByYear: Record<string, number> = {};
 
   for (const r of permits) {
     const addr = normalizePermitAddress(String(r["Address"] ?? ""));
     if (!addr) continue;
 
-    // Geocode: address → taxkey via MAI
     const taxkey = addrToTaxkey.get(addr);
     if (!taxkey || !neighborhoodTaxkeys.has(taxkey)) continue;
 
@@ -178,12 +181,24 @@ export async function fetchPermitInvestment(
     if (permitType.toLowerCase().includes("new construction")) {
       newConstructionCount++;
     }
+
+    // Timeline: aggregate by year from Date Issued
+    const dateStr = String(r["Date Issued"] ?? r["Date Opened"] ?? "");
+    const year = dateStr.substring(0, 4);
+    if (year.length === 4 && parseInt(year) > 2000) {
+      permitsByYear[year] = (permitsByYear[year] ?? 0) + 1;
+      if (cost > 0) {
+        investmentByYear[year] = (investmentByYear[year] ?? 0) + cost;
+      }
+    }
   }
 
   return {
     totalPermitInvestment: Math.round(totalPermitInvestment),
     newConstructionCount,
     permitCount,
+    investmentByYear,
+    permitsByYear,
   };
 }
 

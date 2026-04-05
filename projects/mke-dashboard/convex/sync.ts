@@ -29,15 +29,15 @@ import { fetchDevelopmentZones } from "./etl/zones";
 /**
  * DCD neighborhood names (uppercase, matching the boundaries layer).
  */
-const NEIGHBORHOODS: Array<{ name: string; slug: string; dcdName: string }> = [
-  { name: "Amani", slug: "amani", dcdName: "AMANI" },
-  { name: "Borchert Field", slug: "borchert-field", dcdName: "BORCHERT FIELD" },
-  { name: "Franklin Heights", slug: "franklin-heights", dcdName: "FRANKLIN HEIGHTS" },
-  { name: "Harambee", slug: "harambee", dcdName: "HARAMBEE" },
-  { name: "Havenwoods", slug: "havenwoods", dcdName: "HAVENWOODS" },
-  { name: "Lindsay Heights", slug: "lindsay-heights", dcdName: "NORTH DIVISION" },
-  { name: "Metcalfe Park", slug: "metcalfe-park", dcdName: "METCALFE PARK" },
-  { name: "Sherman Park", slug: "sherman-park", dcdName: "SHERMAN PARK" },
+const NEIGHBORHOODS: Array<{ name: string; slug: string; dcdName: string; censusTracts: number[] }> = [
+  { name: "Amani", slug: "amani", dcdName: "AMANI", censusTracts: [64, 65, 87, 88] },
+  { name: "Borchert Field", slug: "borchert-field", dcdName: "BORCHERT FIELD", censusTracts: [66, 68] },
+  { name: "Franklin Heights", slug: "franklin-heights", dcdName: "FRANKLIN HEIGHTS", censusTracts: [47, 63, 64, 65] },
+  { name: "Harambee", slug: "harambee", dcdName: "HARAMBEE", censusTracts: [67, 68, 69, 70, 71, 81, 84, 106, 1856, 1857] },
+  { name: "Havenwoods", slug: "havenwoods", dcdName: "HAVENWOODS", censusTracts: [11, 12, 19] },
+  { name: "Lindsay Heights", slug: "lindsay-heights", dcdName: "NORTH DIVISION", censusTracts: [84, 85, 86] },
+  { name: "Metcalfe Park", slug: "metcalfe-park", dcdName: "METCALFE PARK", censusTracts: [62, 88, 89, 90, 98, 99] },
+  { name: "Sherman Park", slug: "sherman-park", dcdName: "SHERMAN PARK", censusTracts: [37, 38, 39, 48, 49, 50, 59, 60, 61, 62] },
 ];
 
 /**
@@ -315,12 +315,18 @@ export const syncNeighborhood = internalAction({
       let totalPermitInvestment: number | undefined;
       let newConstructionCount: number | undefined;
       let buildingPermitCount: number | undefined;
+      let investmentByYear: string | undefined;
+      let permitsByYear: string | undefined;
       try {
         if (neighborhoodTaxkeys.size > 0) {
           const permits = await fetchPermitInvestment(neighborhoodTaxkeys);
           totalPermitInvestment = permits.totalPermitInvestment || undefined;
           newConstructionCount = permits.newConstructionCount || undefined;
           buildingPermitCount = permits.permitCount || undefined;
+          investmentByYear = Object.keys(permits.investmentByYear).length > 0
+            ? JSON.stringify(permits.investmentByYear) : undefined;
+          permitsByYear = Object.keys(permits.permitsByYear).length > 0
+            ? JSON.stringify(permits.permitsByYear) : undefined;
         }
       } catch (e) {
         console.error("Permit investment fetch failed:", e);
@@ -369,6 +375,8 @@ export const syncNeighborhood = internalAction({
         liquorLicenseCount,
         totalPermitInvestment,
         newConstructionCount,
+        investmentByYear,
+        permitsByYear,
         // Development Zones
         tidDistricts: zoneData.tidDistricts,
         bidDistricts: zoneData.bidDistricts,
@@ -437,6 +445,8 @@ export const upsertNeighborhood = internalMutation({
     liquorLicenseCount: v.optional(v.number()),
     totalPermitInvestment: v.optional(v.number()),
     newConstructionCount: v.optional(v.number()),
+    investmentByYear: v.optional(v.string()),
+    permitsByYear: v.optional(v.string()),
     // Development Zones
     tidDistricts: v.optional(v.string()),
     bidDistricts: v.optional(v.string()),

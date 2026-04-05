@@ -157,6 +157,31 @@ export const TARGET_NEIGHBORHOODS = [
 
 export type NeighborhoodDef = (typeof TARGET_NEIGHBORHOODS)[number];
 
+// --- Authoritative Census Tract Mappings ---
+// Source: Data You Can Use Neighborhood Portraits (datayoucanuse.org)
+// These use NSP (Neighborhood Strategic Planning) boundaries, the standard
+// for Census-to-neighborhood aggregation in Milwaukee.
+//
+// Note: Some tracts are shared between adjacent neighborhoods (e.g., tract 88
+// appears in both Amani and Metcalfe Park, tract 62 in both Metcalfe Park and
+// Sherman Park). This is standard practice — Census tracts don't align perfectly
+// with neighborhood boundaries.
+//
+// For Franklin Heights and Havenwoods, no DYCU portrait exists yet.
+// These use the best-fit tracts from the DCD bounding box query,
+// filtered to tracts with significant parcel overlap (>= 100 parcels).
+
+export const NEIGHBORHOOD_CENSUS_TRACTS: Record<string, number[]> = {
+  amani: [64, 65, 87, 88],
+  "borchert-field": [66, 68],
+  "franklin-heights": [47, 63, 64, 65], // estimated — no DYCU portrait
+  harambee: [67, 68, 69, 70, 71, 81, 84, 106, 1856, 1857],
+  havenwoods: [11, 12, 19], // estimated — no DYCU portrait
+  "lindsay-heights": [84, 85, 86],
+  "metcalfe-park": [62, 88, 89, 90, 98, 99],
+  "sherman-park": [37, 38, 39, 48, 49, 50, 59, 60, 61, 62],
+} as const;
+
 // --- Auth Tiers ---
 
 export type AuthTier = "public" | "authenticated" | "city_official";
