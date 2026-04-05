@@ -29,15 +29,21 @@ import { fetchDevelopmentZones } from "./etl/zones";
 /**
  * DCD neighborhood names (uppercase, matching the boundaries layer).
  */
+/**
+ * Census tract assignments per neighborhood.
+ * These are CURATED — not from spatial queries (which grab adjacent tracts).
+ * Short codes (e.g., 47) → padded to 6-digit FIPS (004700) in aggregation.
+ * Population cross-checked against known neighborhood estimates.
+ */
 const NEIGHBORHOODS: Array<{ name: string; slug: string; dcdName: string; censusTracts: number[] }> = [
-  { name: "Amani", slug: "amani", dcdName: "AMANI", censusTracts: [64, 65, 87, 88] },
-  { name: "Borchert Field", slug: "borchert-field", dcdName: "BORCHERT FIELD", censusTracts: [66, 68] },
-  { name: "Franklin Heights", slug: "franklin-heights", dcdName: "FRANKLIN HEIGHTS", censusTracts: [47, 63, 64, 65] },
-  { name: "Harambee", slug: "harambee", dcdName: "HARAMBEE", censusTracts: [67, 68, 69, 70, 71, 81, 84, 106, 1856, 1857] },
-  { name: "Havenwoods", slug: "havenwoods", dcdName: "HAVENWOODS", censusTracts: [11, 12, 19] },
-  { name: "Lindsay Heights", slug: "lindsay-heights", dcdName: "NORTH DIVISION", censusTracts: [84, 85, 86] },
-  { name: "Metcalfe Park", slug: "metcalfe-park", dcdName: "METCALFE PARK", censusTracts: [62, 88, 89, 90, 98, 99] },
-  { name: "Sherman Park", slug: "sherman-park", dcdName: "SHERMAN PARK", censusTracts: [37, 38, 39, 48, 49, 50, 59, 60, 61, 62] },
+  { name: "Amani", slug: "amani", dcdName: "AMANI", censusTracts: [64, 65, 87] },                    // ~4,800
+  { name: "Borchert Field", slug: "borchert-field", dcdName: "BORCHERT FIELD", censusTracts: [66] },  // ~1,800
+  { name: "Franklin Heights", slug: "franklin-heights", dcdName: "FRANKLIN HEIGHTS", censusTracts: [47, 63, 64] }, // ~7,000
+  { name: "Harambee", slug: "harambee", dcdName: "HARAMBEE", censusTracts: [67, 68, 69, 70, 71, 81, 84, 106, 1856, 1857] }, // ~17,200 (Data You Can Use: ~18,000)
+  { name: "Havenwoods", slug: "havenwoods", dcdName: "HAVENWOODS", censusTracts: [11, 12, 19] },     // ~8,800
+  { name: "Lindsay Heights", slug: "lindsay-heights", dcdName: "NORTH DIVISION", censusTracts: [84, 85, 86] }, // ~2,800
+  { name: "Metcalfe Park", slug: "metcalfe-park", dcdName: "METCALFE PARK", censusTracts: [88, 89] }, // ~2,700
+  { name: "Sherman Park", slug: "sherman-park", dcdName: "SHERMAN PARK", censusTracts: [48, 49, 50, 59, 60, 61] }, // ~19,800
 ];
 
 /**
@@ -198,7 +204,9 @@ export const syncNeighborhood = internalAction({
         // ZIP/taxkey lookup failed — 311 filtering will be limited
       }
 
-      // 9b. Census ACS demographics (using tract codes)
+      // 9b. Census ACS demographics (using HARDCODED tract codes, not spatial)
+      // Spatial tract discovery grabs too many tracts from adjacent neighborhoods,
+      // inflating population counts. Hardcoded tracts are curated per neighborhood.
       let demographics: {
         population?: number;
         medianIncome?: number;
@@ -207,9 +215,16 @@ export const syncNeighborhood = internalAction({
         medianHomeValue?: number;
       } = {};
       try {
-        if (tractCodes.length > 0) {
+        // Convert curated tract numbers to FIPS 6-digit format
+        // Short: 67 → "6700" → padded "006700"
+        // Long: 1856 → "185600"
+        // All tracts use the convention: multiply by 100 to get the base, then pad to 6
+        const curatedTracts = nhDef.censusTracts.map((t) =>
+          String(t * 100).padStart(6, "0"),
+        );
+        if (curatedTracts.length > 0) {
           const allTracts = await fetchAllTracts();
-          const agg = aggregateForNeighborhood(tractCodes, allTracts);
+          const agg = aggregateForNeighborhood(curatedTracts, allTracts);
           demographics = {
             population: agg.population || undefined,
             medianIncome: agg.medianIncome ?? undefined,
