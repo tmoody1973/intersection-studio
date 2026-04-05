@@ -311,13 +311,17 @@ export const syncNeighborhood = internalAction({
         console.error("Development zones fetch failed:", e);
       }
 
-      // 13. Building permit investment (CKAN — citywide)
+      // 13. Building permit investment (geocoded via MAI address→taxkey)
       let totalPermitInvestment: number | undefined;
       let newConstructionCount: number | undefined;
+      let buildingPermitCount: number | undefined;
       try {
-        const permits = await fetchPermitInvestment();
-        totalPermitInvestment = permits.totalPermitInvestment || undefined;
-        newConstructionCount = permits.newConstructionCount || undefined;
+        if (neighborhoodTaxkeys.size > 0) {
+          const permits = await fetchPermitInvestment(neighborhoodTaxkeys);
+          totalPermitInvestment = permits.totalPermitInvestment || undefined;
+          newConstructionCount = permits.newConstructionCount || undefined;
+          buildingPermitCount = permits.permitCount || undefined;
+        }
       } catch (e) {
         console.error("Permit investment fetch failed:", e);
       }
@@ -353,7 +357,7 @@ export const syncNeighborhood = internalAction({
         serviceRequestsByType: serviceRequests.byType,
         serviceRequestsByMonth: serviceRequests.byMonth,
         // Building Permits
-        buildingPermitCount: permitData.total,
+        buildingPermitCount: buildingPermitCount ?? permitData.total,
         buildingPermitsByType: permitData.byType,
         // EMS / Safety
         overdoseCount,

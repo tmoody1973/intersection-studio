@@ -99,28 +99,83 @@ export interface LiquorLicenseAggregation {
 export interface PermitInvestmentAggregation {
   totalPermitInvestment: number;
   newConstructionCount: number;
+  permitCount: number;
 }
 
 /**
- * Aggregate building permit investment from CKAN.
- * Permits lack coordinates, so this returns citywide totals for now.
+ * Build address → taxkey lookup from the Master Address Index (MAI).
+ * MAI has 334K records: HSE_NBR + DIR + STREET + STTYPE → TAXKEY.
+ * We normalize addresses to match permit format.
  */
-export async function fetchPermitInvestment(): Promise<PermitInvestmentAggregation> {
+async function buildAddressToTaxkeyMap(): Promise<Map<string, string>> {
   const records = await ckanFetchAll(
+    "9f905487-720e-4f30-ae70-b5ec8a2a65a1", // MAI
+    350000, // ~334K records
+  );
+
+  const map = new Map<string, string>();
+  for (const r of records) {
+    const hse = String(r["HSE_NBR"] ?? "").trim();
+    const dir = String(r["DIR"] ?? "").trim();
+    const street = String(r["STREET"] ?? "").trim();
+    const sttype = String(r["STTYPE"] ?? "").trim();
+    const taxkey = String(r["TAXKEY"] ?? "").trim();
+
+    if (!hse || !street || !taxkey) continue;
+
+    // Normalize: "612 W ABBOTT AV"
+    const key = `${hse} ${dir} ${street} ${sttype}`.replace(/\s+/g, " ").trim().toUpperCase();
+    map.set(key, taxkey);
+  }
+
+  return map;
+}
+
+/**
+ * Normalize a permit address to match MAI format.
+ * Permit: "2033 S 24TH ST" → "2033 S 24TH ST"
+ */
+function normalizePermitAddress(addr: string): string {
+  return addr.replace(/,.*$/, "").replace(/\s+/g, " ").trim().toUpperCase();
+}
+
+/**
+ * Aggregate building permit investment for a neighborhood.
+ * Uses MAI (Master Address Index) to geocode permit addresses to taxkeys,
+ * then filters by the neighborhood's taxkey set.
+ */
+export async function fetchPermitInvestment(
+  neighborhoodTaxkeys: Set<string>,
+): Promise<PermitInvestmentAggregation> {
+  // 1. Build address → taxkey lookup from MAI
+  const addrToTaxkey = await buildAddressToTaxkeyMap();
+
+  // 2. Fetch all permits
+  const permits = await ckanFetchAll(
     "828e9630-d7cb-42e4-960e-964eae916397",
-    10000,
+    20000,
   );
 
   let totalPermitInvestment = 0;
   let newConstructionCount = 0;
+  let permitCount = 0;
 
-  for (const r of records) {
+  for (const r of permits) {
+    const addr = normalizePermitAddress(String(r["Address"] ?? ""));
+    if (!addr) continue;
+
+    // Geocode: address → taxkey via MAI
+    const taxkey = addrToTaxkey.get(addr);
+    if (!taxkey || !neighborhoodTaxkeys.has(taxkey)) continue;
+
+    permitCount++;
     const cost = Number(r["Construction Total Cost"] ?? 0);
     if (cost > 0) {
       totalPermitInvestment += cost;
     }
-    const permitType = String(r["Permit_Type"] ?? "");
-    if (permitType === "New Construction") {
+
+    const permitType = String(r["Permit Type"] ?? "");
+    if (permitType.toLowerCase().includes("new construction")) {
       newConstructionCount++;
     }
   }
@@ -128,6 +183,7 @@ export async function fetchPermitInvestment(): Promise<PermitInvestmentAggregati
   return {
     totalPermitInvestment: Math.round(totalPermitInvestment),
     newConstructionCount,
+    permitCount,
   };
 }
 
