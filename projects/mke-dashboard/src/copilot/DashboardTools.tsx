@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useFrontendTool } from "@copilotkit/react-core";
 import { GenericChart, ChartSkeleton } from "@/components/charts/GenericChart";
+import { DataTable, DataTableSkeleton } from "@/components/charts/DataTable";
 
 /**
  * Registers CopilotKit frontend tools for Generative UI.
@@ -363,5 +365,126 @@ export function DashboardTools() {
     },
   });
 
+  // --- Data table tool ---
+
+  useFrontendTool({
+    name: "render_data_table",
+    description:
+      "Render a data table showing individual records. Use this when the user asks for a list or details of specific items like permits, properties, crimes, or 311 requests. The data parameter should be an array of objects.",
+    parameters: [
+      { name: "title", type: "string", description: "Table title", required: true },
+      { name: "columns", type: "object[]", description: "Array of {key, label} column definitions", required: true },
+      { name: "data", type: "object[]", description: "Array of row objects", required: true },
+    ],
+    render: ({ status, args }) => {
+      if (status === "inProgress" || status === "executing") return <DataTableSkeleton />;
+      if (!args?.data || !args?.columns) return <></>;
+      return (
+        <DataTable
+          title={args.title ?? "Data"}
+          columns={args.columns as Array<{ key: string; label: string }>}
+          rows={args.data as Record<string, unknown>[]}
+        />
+      );
+    },
+  });
+
+  // --- Permit detail fetcher (live CKAN query) ---
+
+  useFrontendTool({
+    name: "fetch_neighborhood_permits",
+    description:
+      "Fetch and display individual building permit records for a neighborhood from the city's open data. Shows address, permit type, construction cost, and date issued. Use when the user asks 'what's being built?' or 'show me development details' or 'list the permits'.",
+    parameters: [
+      { name: "neighborhood", type: "string", description: "Neighborhood name", required: true },
+      { name: "filterType", type: "string", description: "Filter by permit type: 'all', 'new_construction', 'commercial', 'residential'", required: false },
+    ],
+    render: ({ status, args }) => {
+      if (status === "inProgress" || status === "executing") return <DataTableSkeleton />;
+      return (
+        <PermitFetcher
+          neighborhood={args?.neighborhood ?? ""}
+          filterType={args?.filterType as string}
+        />
+      );
+    },
+  });
+
   return <></>;
+}
+
+// --- Live CKAN permit fetcher component ---
+
+function PermitFetcher({
+  neighborhood,
+  filterType,
+}: {
+  neighborhood: string;
+  filterType?: string;
+}) {
+  const [permits, setPermits] = useState<Record<string, unknown>[] | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const url = `https://data.milwaukee.gov/api/3/action/datastore_search?resource_id=828e9630-d7cb-42e4-960e-964eae916397&limit=500&sort=_id+desc`;
+
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.success) return;
+        let records = data.result.records as Record<string, unknown>[];
+
+        // Filter by permit type if specified
+        if (filterType === "new_construction") {
+          records = records.filter((r) =>
+            String(r["Permit Type"] ?? "").toLowerCase().includes("new construction"),
+          );
+        } else if (filterType === "commercial") {
+          records = records.filter((r) =>
+            String(r["Permit Type"] ?? "").toLowerCase().includes("commercial"),
+          );
+        } else if (filterType === "residential") {
+          records = records.filter((r) =>
+            String(r["Permit Type"] ?? "").toLowerCase().includes("residential"),
+          );
+        }
+
+        // Format for display
+        const formatted = records.map((r) => ({
+          address: r["Address"] ?? "—",
+          type: r["Permit Type"] ?? "—",
+          cost: Number(r["Construction Total Cost"] ?? 0),
+          date: String(r["Date Issued"] ?? "").substring(0, 10),
+          status: r["Status"] ?? "—",
+          units: r["Dwelling units impact"] ?? "—",
+        }));
+
+        setPermits(formatted);
+      })
+      .catch(() => setPermits([]))
+      .finally(() => setLoading(false));
+  }, [filterType]);
+
+  if (loading) return <DataTableSkeleton />;
+  if (!permits || permits.length === 0) {
+    return (
+      <div className="rounded-lg border border-limestone/20 bg-white p-4 dark:bg-[#292524]">
+        <p className="text-sm text-foundry">No permits found for {neighborhood}</p>
+      </div>
+    );
+  }
+
+  return (
+    <DataTable
+      title={`Building Permits — ${neighborhood}${filterType && filterType !== "all" ? ` (${filterType.replace("_", " ")})` : ""}`}
+      columns={[
+        { key: "address", label: "Address" },
+        { key: "type", label: "Type" },
+        { key: "cost", label: "Cost" },
+        { key: "date", label: "Date" },
+        { key: "status", label: "Status" },
+      ]}
+      rows={permits}
+    />
+  );
 }
