@@ -159,22 +159,29 @@ export const syncNeighborhood = internalAction({
         console.error("Community resources fetch failed:", e);
       }
 
-      // 10. Census tracts + ZIP codes + taxkeys in this neighborhood
-      let censusTracts: string | undefined;
+      // 10. Census tracts (hardcoded from Data You Can Use / NSP boundaries)
+      //     + ZIP codes and taxkeys from MPROP spatial query
+      //
+      // Previously: tracts were discovered dynamically from MPROP GEO_TRACT field
+      // within the bounding box. This overcounted because bbox tracts extend beyond
+      // the actual neighborhood boundary (e.g., Harambee showed 29,052 pop instead
+      // of ~17,228 from the authoritative 10-tract mapping).
+      //
+      // Now: use hardcoded tract mappings from Data You Can Use's Neighborhood
+      // Portraits, which use NSP (Neighborhood Strategic Planning) boundaries.
+      const tractCodes: string[] = nhDef.censusTracts.map((t) => String(t * 100));
+      const censusTracts = JSON.stringify(tractCodes);
+
       let neighborhoodZips: string[] = [];
-      let tractCodes: string[] = [];
       let neighborhoodTaxkeys = new Set<string>();
       try {
         const tractRecords = await spatialFeatures(
           ENDPOINTS.mprop,
           "GEO_TRACT IS NOT NULL",
-          "GEO_TRACT,GEO_ZIP_CODE,TAXKEY",
+          "GEO_ZIP_CODE,TAXKEY",
           envelope,
           5000,
         );
-        tractCodes = [
-          ...new Set(tractRecords.map((r) => String(r.GEO_TRACT))),
-        ];
         neighborhoodZips = [
           ...new Set(
             tractRecords
@@ -187,9 +194,8 @@ export const syncNeighborhood = internalAction({
             .map((r) => String(r.TAXKEY ?? ""))
             .filter((t) => t.length > 0),
         );
-        censusTracts = JSON.stringify(tractCodes);
       } catch {
-        censusTracts = undefined;
+        // ZIP/taxkey lookup failed — 311 filtering will be limited
       }
 
       // 9b. Census ACS demographics (using tract codes)

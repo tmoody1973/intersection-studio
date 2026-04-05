@@ -81,5 +81,10 @@
   "chat": {
     "title": "Ask about Milwaukee",
     "initial": "Hi! I can help you understand neighborhood data. Try asking:\n\n• How many vacant properties are there?\n• What's the crime trend?\n• Compare neighborhoods"
+  },
+  "methodology": {
+    "populationNote": "Population is estimated from U.S. Census ACS 5-Year data aggregated by census tracts that align with the neighborhood boundary. Tract mappings follow Data You Can Use's Neighborhood Portraits (datayoucanuse.org). Some tracts are shared between adjacent neighborhoods. Figures may differ slightly from other sources due to boundary definitions.",
+    "dataSourceNote": "Property, crime, and service data come from City of Milwaukee ArcGIS and open data portal. Crime data is from WIBR daily reports. 311 data is filtered by ZIP code. All data refreshes every 24 hours.",
+    "learnMore": "Learn more about our data sources"
   }
 }

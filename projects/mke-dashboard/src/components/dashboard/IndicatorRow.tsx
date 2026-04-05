@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { motion, useReducedMotion } from "framer-motion";
+import { Info } from "lucide-react";
 
 interface Indicator {
   label: string;
@@ -16,12 +19,30 @@ interface IndicatorRowProps {
 
 export function IndicatorRow({ indicators, neighborhoodName }: IndicatorRowProps) {
   const prefersReducedMotion = useReducedMotion();
+  const [showNote, setShowNote] = useState(false);
+  const t = useTranslations("methodology");
 
   return (
     <div className="mb-6">
-      <h2 className="mb-3 font-display text-lg font-semibold text-iron">
-        {neighborhoodName} Overview
-      </h2>
+      <div className="mb-3 flex items-center gap-2">
+        <h2 className="font-display text-lg font-semibold text-iron">
+          {neighborhoodName} Overview
+        </h2>
+        <button
+          type="button"
+          onClick={() => setShowNote(!showNote)}
+          className="text-limestone transition-colors hover:text-foundry"
+          aria-label="About this data"
+          title="About this data"
+        >
+          <Info size={14} />
+        </button>
+      </div>
+      {showNote && (
+        <p className="mb-3 rounded-lg bg-limestone/10 px-3 py-2 text-xs text-foundry">
+          {t("populationNote")}
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {indicators.map((ind, i) => (
           <motion.div
