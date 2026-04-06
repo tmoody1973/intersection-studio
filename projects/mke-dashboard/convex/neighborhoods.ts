@@ -43,6 +43,17 @@ export const compare = query({
   },
 });
 
+/** Get year-over-year historical data for a neighborhood. */
+export const getHistory = query({
+  args: { slug: v.string() },
+  handler: async (ctx, { slug }) => {
+    return await ctx.db
+      .query("neighborhoodHistory")
+      .withIndex("by_slug_year", (q) => q.eq("slug", slug))
+      .collect();
+  },
+});
+
 /** Get neighborhood names and slugs only (for selector dropdown). */
 export const listNames = query({
   args: {},

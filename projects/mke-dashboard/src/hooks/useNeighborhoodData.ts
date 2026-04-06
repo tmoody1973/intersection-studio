@@ -4,7 +4,8 @@ import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import type { MetricCardProps } from "@/types/metrics";
+import type { MetricCardProps, MetricTrend } from "@/types/metrics";
+import { computeTrendDirection, type TrendPolarity } from "@/lib/metric-config";
 
 // Metric ID → translation key mapping
 const METRIC_LABELS: Record<string, { label: string; unit: string }> = {
@@ -42,8 +43,68 @@ const METRIC_LABELS: Record<string, { label: string; unit: string }> = {
   food_inspection: { label: "foodInspectionPassRate", unit: "percent" },
 };
 
+/** Polarity for each metric id — determines if up is good or bad */
+const METRIC_POLARITY: Record<string, TrendPolarity> = {
+  total_properties: "higher_is_better",
+  owner_occupied_rate: "higher_is_better",
+  avg_assessed_value: "higher_is_better",
+  population: "higher_is_better",
+  median_income: "higher_is_better",
+  libraries: "higher_is_better",
+  schools: "higher_is_better",
+  parks: "higher_is_better",
+  daycares: "higher_is_better",
+  crime_total: "lower_is_better",
+  crime_violent: "lower_is_better",
+  crime_property: "lower_is_better",
+  overdose_calls: "lower_is_better",
+  traffic_crashes: "lower_is_better",
+  fire_incidents: "lower_is_better",
+  vacant_buildings: "lower_is_better",
+  vacant_land: "lower_is_better",
+  foreclosures_city: "lower_is_better",
+  foreclosures_bank: "lower_is_better",
+  service_requests_311: "lower_is_better",
+  building_permits: "higher_is_better",
+  property_sales: "higher_is_better",
+  median_sale_price: "higher_is_better",
+  total_permit_investment: "higher_is_better",
+  new_construction: "higher_is_better",
+  poverty_rate: "lower_is_better",
+  unemployment: "lower_is_better",
+  median_home_value: "higher_is_better",
+  food_inspection: "higher_is_better",
+  liquor_licenses: "higher_is_better",
+  police_stations: "higher_is_better",
+  firehouses: "higher_is_better",
+};
+
+/** Maps metric id → previousPeriod JSON field name */
+const METRIC_TO_PREV_FIELD: Record<string, string> = {
+  total_properties: "totalProperties",
+  owner_occupied_rate: "ownerOccupiedRate",
+  avg_assessed_value: "avgAssessedValue",
+  population: "population",
+  median_income: "medianIncome",
+  crime_total: "crimeTotal",
+  crime_violent: "crimeViolent",
+  service_requests_311: "serviceRequests311",
+  foreclosures_city: "foreclosureCityCount",
+  foreclosures_bank: "foreclosureBankCount",
+  vacant_buildings: "vacantBuildingCount",
+  poverty_rate: "povertyRate",
+  unemployment: "unemploymentRate",
+  total_permit_investment: "totalPermitInvestment",
+  property_sales: "propertySalesCount",
+  median_sale_price: "medianSalePrice",
+  libraries: "libraryCount",
+  schools: "schoolCount",
+  parks: "parkCount",
+};
+
 export function useNeighborhoodData(slug: string) {
   const neighborhood = useQuery(api.neighborhoods.getBySlug, { slug });
+  const historyRaw = useQuery(api.neighborhoods.getHistory, { slug });
   const isLoading = neighborhood === undefined;
   const tm = useTranslations("metrics");
   const tu = useTranslations("units");
@@ -92,12 +153,33 @@ export function useNeighborhoodData(slug: string) {
     try { return tu(key); } catch { return fallback; }
   };
 
+  const previousPeriod = useMemo((): Record<string, number> | null => {
+    if (!neighborhood?.previousPeriod) return null;
+    try { return JSON.parse(neighborhood.previousPeriod) as Record<string, number>; } catch { return null; }
+  }, [neighborhood?.previousPeriod]);
+
   const metrics = useMemo((): MetricCardProps[] => {
     if (!neighborhood) return [];
 
     const now = neighborhood.lastSyncAt
       ? new Date(neighborhood.lastSyncAt).toISOString()
       : new Date().toISOString();
+
+    const computeTrend = (id: string, currentValue: number | null): MetricTrend | null => {
+      if (currentValue == null || !previousPeriod) return null;
+      const prevField = METRIC_TO_PREV_FIELD[id];
+      if (!prevField) return null;
+      const prev = previousPeriod[prevField];
+      if (prev == null || prev === 0) return null;
+      const rawChange = ((currentValue - prev) / prev) * 100;
+      const polarity = METRIC_POLARITY[id];
+      if (!polarity) return null;
+      return {
+        direction: computeTrendDirection(polarity, rawChange),
+        percentage: Math.round(Math.abs(rawChange)),
+        comparedTo: "vs. last sync",
+      };
+    };
 
     const m: MetricCardProps[] = [];
     const add = (id: string, fallbackLabel: string, value: number | null, fallbackUnit: string, category: MetricCardProps["category"], sourceName: string, extra?: Partial<MetricCardProps>) =>
@@ -106,7 +188,7 @@ export function useNeighborhoodData(slug: string) {
         label: label(id, fallbackLabel),
         value,
         unit: unit(id, fallbackUnit),
-        trend: null,
+        trend: computeTrend(id, value),
         category,
         source: { name: sourceName, lastUpdated: now },
         ...extra,
@@ -217,7 +299,26 @@ export function useNeighborhoodData(slug: string) {
       });
 
     return m;
-  }, [neighborhood, label, unit]);
+  }, [neighborhood, previousPeriod, label, unit]);
+
+  // Year-over-year historical trends
+  const crimeTrend = useMemo(() => {
+    if (!historyRaw) return null;
+    const points = historyRaw
+      .filter((h) => h.crimeTotal != null)
+      .map((h) => ({ year: h.year, value: h.crimeTotal as number }))
+      .sort((a, b) => a.year - b.year);
+    return points.length >= 2 ? points : null;
+  }, [historyRaw]);
+
+  const serviceRequestsTrend = useMemo(() => {
+    if (!historyRaw) return null;
+    const points = historyRaw
+      .filter((h) => h.serviceRequests311 != null)
+      .map((h) => ({ year: h.year, value: h.serviceRequests311 as number }))
+      .sort((a, b) => a.year - b.year);
+    return points.length >= 2 ? points : null;
+  }, [historyRaw]);
 
   return {
     metrics,
@@ -229,6 +330,8 @@ export function useNeighborhoodData(slug: string) {
     serviceRequestsByType,
     investmentByYear,
     permitsByYear,
+    crimeTrend,
+    serviceRequestsTrend,
     raw: neighborhood,
   };
 }

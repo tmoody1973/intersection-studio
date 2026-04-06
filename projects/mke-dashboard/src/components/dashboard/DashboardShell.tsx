@@ -7,6 +7,7 @@ import { CopilotSidebar } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 import { CategoryTabs } from "./CategoryTabs";
 import { CategoryView } from "./CategoryView";
+import { ComparisonView } from "./ComparisonView";
 import { IndicatorRow } from "./IndicatorRow";
 import { DashboardContext } from "@/copilot/DashboardContext";
 import { DashboardTools } from "@/copilot/DashboardTools";
@@ -37,6 +38,7 @@ export function DashboardShell() {
     useState<CategoryId>("community");
   const [showHOLC, setShowHOLC] = useState(false);
   const [activeLayers, setActiveLayers] = useState<string[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
 
   // Translate category labels
   const translatedCategories = useMemo(
@@ -65,6 +67,8 @@ export function DashboardShell() {
     housingAge,
     investmentByYear,
     permitsByYear,
+    crimeTrend,
+    serviceRequestsTrend,
     raw,
   } = useNeighborhoodData(selectedSlug);
 
@@ -77,14 +81,27 @@ export function DashboardShell() {
     [selectedSlug],
   );
 
+  // Look up trend data from the metrics array for a given metric id
+  const trendFor = useCallback(
+    (metricId: string) => {
+      const metric = metrics.find((m) => m.id === metricId);
+      if (!metric?.trend) return undefined;
+      return {
+        direction: metric.trend.direction,
+        percentage: metric.trend.percentage,
+      };
+    },
+    [metrics],
+  );
+
   // Key indicators for the overview row (like Kensington Home tab)
   const keyIndicators = raw
     ? [
-        { label: "Population", value: raw.population ?? null, unit: "residents" },
-        { label: "Median Income", value: raw.medianIncome ? `$${raw.medianIncome.toLocaleString()}` : null },
-        { label: "Poverty Rate", value: raw.povertyRate != null ? `${raw.povertyRate}%` : null },
-        { label: "Properties", value: raw.totalProperties ?? null, unit: "parcels" },
-        { label: "Owner-Occupied", value: raw.ownerOccupiedRate != null ? `${raw.ownerOccupiedRate}%` : null },
+        { label: "Population", value: raw.population ?? null, unit: "residents", delta: trendFor("population") },
+        { label: "Median Income", value: raw.medianIncome ? `$${raw.medianIncome.toLocaleString()}` : null, delta: trendFor("median_income") },
+        { label: "Poverty Rate", value: raw.povertyRate != null ? `${raw.povertyRate}%` : null, delta: trendFor("poverty_rate") },
+        { label: "Properties", value: raw.totalProperties ?? null, unit: "parcels", delta: trendFor("total_properties") },
+        { label: "Owner-Occupied", value: raw.ownerOccupiedRate != null ? `${raw.ownerOccupiedRate}%` : null, delta: trendFor("owner_occupied_rate") },
       ]
     : [];
 
@@ -98,6 +115,7 @@ export function DashboardShell() {
         raw={raw}
         onSwitchNeighborhood={setSelectedSlug}
         onSwitchCategory={setActiveCategory}
+        onOpenComparison={() => setShowComparison(true)}
       />
       <DashboardTools />
 
@@ -122,6 +140,13 @@ export function DashboardShell() {
               </option>
             ))}
           </select>
+
+          <button
+            onClick={() => setShowComparison(true)}
+            className="rounded-lg border border-limestone/30 bg-white px-3 py-2 text-sm font-medium text-iron hover:bg-limestone/10 focus:border-lakeshore focus:outline-none focus:ring-1 focus:ring-lakeshore dark:bg-[#292524]"
+          >
+            Compare
+          </button>
         </div>
 
         {/* Map Layer Toggles */}
@@ -179,12 +204,21 @@ export function DashboardShell() {
                 housingAge={housingAge}
                 investmentByYear={investmentByYear}
                 permitsByYear={permitsByYear}
+                crimeTrend={crimeTrend}
+                serviceRequestsTrend={serviceRequestsTrend}
                 onAskAI={handleAskAI}
               />
             </div>
           </div>
         </div>
       </div>
+
+      {showComparison && (
+        <ComparisonView
+          onClose={() => setShowComparison(false)}
+          initialSlugA={selectedSlug}
+        />
+      )}
 
       <CopilotSidebar
         instructions={MKE_ECONOMIC_INSTRUCTIONS}

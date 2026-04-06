@@ -19,6 +19,10 @@ import {
   fetchTrafficCrashCount,
 } from "./etl/csv";
 import {
+  fetchHistoricalCrimeCount,
+  fetchHistorical311Count,
+} from "./etl/historical";
+import {
   fetchAllTracts,
   aggregateForNeighborhood,
 } from "./etl/census";
@@ -524,6 +528,20 @@ export const upsertNeighborhood = internalMutation({
         vacantBuildingCount: existing.vacantBuildingCount,
         foreclosureCityCount: existing.foreclosureCityCount,
         avgAssessedValue: existing.avgAssessedValue,
+        crimeTotal: existing.crimeTotal,
+        crimeViolent: existing.crimeViolent,
+        serviceRequests311: existing.serviceRequests311,
+        foreclosureBankCount: existing.foreclosureBankCount,
+        population: existing.population,
+        medianIncome: existing.medianIncome,
+        povertyRate: existing.povertyRate,
+        unemploymentRate: existing.unemploymentRate,
+        totalPermitInvestment: (existing as Record<string, unknown>).totalPermitInvestment as number | undefined,
+        propertySalesCount: existing.propertySalesCount,
+        medianSalePrice: existing.medianSalePrice,
+        libraryCount: existing.libraryCount,
+        schoolCount: existing.schoolCount,
+        parkCount: existing.parkCount,
         snapshotAt: existing.lastSyncAt,
       });
       await ctx.db.patch(existing._id, { ...args, previousPeriod });
@@ -571,6 +589,116 @@ export const logSyncComplete = internalMutation({
     );
     if (runningLog) {
       await ctx.db.patch(runningLog._id, { completedAt: Date.now(), status, error });
+    }
+  },
+});
+
+// --- Historical Data Sync ---
+
+const HISTORY_YEARS = [2020, 2021, 2022, 2023, 2024, 2025];
+
+/**
+ * Sync historical year-over-year data for all neighborhoods.
+ * Fetches WIBR Crime Historical + 311 Historical from CKAN,
+ * one year at a time to manage data volume (883K+ crime records).
+ */
+export const syncHistory = internalAction({
+  args: {
+    slug: v.optional(v.string()),
+  },
+  handler: async (ctx, { slug }) => {
+    const targets = slug
+      ? NEIGHBORHOODS.filter((n) => n.slug === slug)
+      : NEIGHBORHOODS;
+
+    for (const nh of targets) {
+      // Fetch boundary envelope
+      const boundaryGeoJson = await fetchNeighborhoodBoundary(nh.dcdName);
+      const envelope = buildEnvelopeFromGeoJSON(boundaryGeoJson);
+
+      // Get ZIP codes for 311 filtering
+      let neighborhoodZips: string[] = [];
+      try {
+        const tractRecords = await spatialFeatures(
+          ENDPOINTS.mprop,
+          "GEO_TRACT IS NOT NULL",
+          "GEO_ZIP_CODE",
+          envelope,
+          5000,
+        );
+        neighborhoodZips = [
+          ...new Set(
+            tractRecords
+              .map((r) => String(r.GEO_ZIP_CODE ?? ""))
+              .filter((z) => z.length >= 5),
+          ),
+        ];
+      } catch {
+        // ZIP lookup failed — 311 will be skipped
+      }
+
+      // Process one year at a time to avoid memory issues
+      for (const year of HISTORY_YEARS) {
+        let crimeTotal: number | undefined;
+        try {
+          crimeTotal = await fetchHistoricalCrimeCount(year, envelope);
+        } catch (e) {
+          console.error(`Crime historical fetch failed for ${nh.slug}/${year}:`, e);
+        }
+
+        let serviceRequests311: number | undefined;
+        try {
+          if (neighborhoodZips.length > 0) {
+            serviceRequests311 = await fetchHistorical311Count(year, neighborhoodZips);
+          }
+        } catch (e) {
+          console.error(`311 historical fetch failed for ${nh.slug}/${year}:`, e);
+        }
+
+        // Only upsert if we got at least one data point
+        if (crimeTotal !== undefined || serviceRequests311 !== undefined) {
+          await ctx.runMutation(internal.sync.upsertHistory, {
+            slug: nh.slug,
+            year,
+            crimeTotal,
+            serviceRequests311,
+          });
+        }
+      }
+    }
+  },
+});
+
+export const upsertHistory = internalMutation({
+  args: {
+    slug: v.string(),
+    year: v.number(),
+    crimeTotal: v.optional(v.number()),
+    serviceRequests311: v.optional(v.number()),
+    population: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("neighborhoodHistory")
+      .withIndex("by_slug_year", (q) =>
+        q.eq("slug", args.slug).eq("year", args.year),
+      )
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        ...(args.crimeTotal !== undefined ? { crimeTotal: args.crimeTotal } : {}),
+        ...(args.serviceRequests311 !== undefined ? { serviceRequests311: args.serviceRequests311 } : {}),
+        ...(args.population !== undefined ? { population: args.population } : {}),
+      });
+    } else {
+      await ctx.db.insert("neighborhoodHistory", {
+        slug: args.slug,
+        year: args.year,
+        crimeTotal: args.crimeTotal,
+        serviceRequests311: args.serviceRequests311,
+        population: args.population,
+      });
     }
   },
 });

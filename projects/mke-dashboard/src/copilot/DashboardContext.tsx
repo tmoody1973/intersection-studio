@@ -25,6 +25,7 @@ interface DashboardContextProps {
   raw?: NeighborhoodRaw | null;
   onSwitchNeighborhood: (slug: string) => void;
   onSwitchCategory: (category: CategoryId) => void;
+  onOpenComparison?: () => void;
 }
 
 /**
@@ -48,6 +49,7 @@ export function DashboardContext({
   raw,
   onSwitchNeighborhood,
   onSwitchCategory,
+  onOpenComparison,
 }: DashboardContextProps) {
   // Make the current neighborhood readable
   useCopilotReadable({
@@ -138,6 +140,17 @@ export function DashboardContext({
     ],
     handler: ({ category }) => {
       onSwitchCategory(category as CategoryId);
+    },
+  });
+
+  // Action: Open comparison view
+  useCopilotAction({
+    name: "compareNeighborhoods",
+    description:
+      "Open the neighborhood comparison view to compare metrics side by side between two Milwaukee neighborhoods.",
+    parameters: [],
+    handler: () => {
+      onOpenComparison?.();
     },
   });
 

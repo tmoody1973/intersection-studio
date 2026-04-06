@@ -3,13 +3,19 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { motion, useReducedMotion } from "framer-motion";
-import { Info } from "lucide-react";
+import { Info, TrendingUp, TrendingDown, Minus } from "lucide-react";
+
+interface IndicatorDelta {
+  direction: "improving" | "worsening" | "stable";
+  percentage: number;
+}
 
 interface Indicator {
   label: string;
   value: number | string | null;
   unit?: string;
   color?: string;
+  delta?: IndicatorDelta;
 }
 
 interface IndicatorRowProps {
@@ -64,6 +70,24 @@ export function IndicatorRow({ indicators, neighborhoodName }: IndicatorRowProps
             </div>
             {ind.unit && (
               <span className="text-[10px] text-limestone">{ind.unit}</span>
+            )}
+            {ind.delta && ind.delta.percentage > 0 && (
+              <div className={`mt-1 flex items-center gap-0.5 text-[10px] font-medium ${
+                ind.delta.direction === "improving"
+                  ? "text-green-600 dark:text-green-400"
+                  : ind.delta.direction === "worsening"
+                    ? "text-red-600 dark:text-red-400"
+                    : "text-limestone"
+              }`}>
+                {ind.delta.direction === "improving" ? (
+                  <TrendingUp size={10} />
+                ) : ind.delta.direction === "worsening" ? (
+                  <TrendingDown size={10} />
+                ) : (
+                  <Minus size={10} />
+                )}
+                <span>{ind.delta.percentage}%</span>
+              </div>
             )}
           </motion.div>
         ))}

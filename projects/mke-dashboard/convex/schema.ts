@@ -99,6 +99,18 @@ export default defineSchema({
     .index("by_name", ["name"]),
 
   /**
+   * Year-over-year historical metrics per neighborhood.
+   * Populated from WIBR Crime Historical + 311 Historical CKAN datasets.
+   */
+  neighborhoodHistory: defineTable({
+    slug: v.string(),
+    year: v.number(),
+    crimeTotal: v.optional(v.number()),
+    serviceRequests311: v.optional(v.number()),
+    population: v.optional(v.number()),
+  }).index("by_slug_year", ["slug", "year"]),
+
+  /**
    * User data — linked to Clerk via tokenIdentifier.
    */
   users: defineTable({

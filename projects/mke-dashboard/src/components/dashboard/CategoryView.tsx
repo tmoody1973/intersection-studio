@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { GenericChart } from "@/components/charts/GenericChart";
+import { TrendChart } from "@/components/charts/TrendChart";
 import { MetricCard } from "./MetricCard";
 import type { MetricCardProps, CategoryId } from "@/types/metrics";
 
@@ -9,6 +10,11 @@ interface ZoneInfo {
   name: string;
   type: string;
   active: boolean;
+}
+
+interface TrendDataPoint {
+  year: number;
+  value: number;
 }
 
 interface CategoryViewProps {
@@ -21,6 +27,8 @@ interface CategoryViewProps {
   zoneInfo?: ZoneInfo[];
   investmentByYear?: Record<string, number> | null;
   permitsByYear?: Record<string, number> | null;
+  crimeTrend?: TrendDataPoint[] | null;
+  serviceRequestsTrend?: TrendDataPoint[] | null;
   onAskAI?: (id: string, label: string) => void;
 }
 
@@ -38,6 +46,8 @@ export function CategoryView({
   zoneInfo,
   investmentByYear,
   permitsByYear,
+  crimeTrend,
+  serviceRequestsTrend,
   onAskAI,
 }: CategoryViewProps) {
   const filteredMetrics = metrics.filter((m) => m.category === category);
@@ -107,24 +117,33 @@ export function CategoryView({
 
       {/* Category-specific charts */}
       {category === "publicSafety" && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {crimeTypeChartData && crimeTypeChartData.length > 0 && (
-            <GenericChart
-              title="Crime by Type"
-              chartType="bar"
-              data={crimeTypeChartData}
-              xAxisKey="name"
-              yAxisKey="value"
-              color="#B84233"
-            />
-          )}
-          {crimeMonthChartData && crimeMonthChartData.length > 1 && (
-            <GenericChart
-              title="Crime Trend by Month"
-              chartType="area"
-              data={crimeMonthChartData}
-              xAxisKey="month"
-              yAxisKey="value"
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {crimeTypeChartData && crimeTypeChartData.length > 0 && (
+              <GenericChart
+                title="Crime by Type"
+                chartType="bar"
+                data={crimeTypeChartData}
+                xAxisKey="name"
+                yAxisKey="value"
+                color="#B84233"
+              />
+            )}
+            {crimeMonthChartData && crimeMonthChartData.length > 1 && (
+              <GenericChart
+                title="Crime Trend by Month"
+                chartType="area"
+                data={crimeMonthChartData}
+                xAxisKey="month"
+                yAxisKey="value"
+                color="#B84233"
+              />
+            )}
+          </div>
+          {crimeTrend && (
+            <TrendChart
+              title="Crime Year-over-Year (2020-2025)"
+              data={crimeTrend}
               color="#B84233"
             />
           )}
@@ -132,24 +151,33 @@ export function CategoryView({
       )}
 
       {category === "qualityOfLife" && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {serviceRequestChartData && serviceRequestChartData.length > 0 && (
-            <GenericChart
-              title="311 Requests by Type"
-              chartType="bar"
-              data={serviceRequestChartData}
-              xAxisKey="name"
-              yAxisKey="value"
-              color="#2563EB"
-            />
-          )}
-          {housingAgeChartData && housingAgeChartData.length > 0 && (
-            <GenericChart
-              title="Housing Age Distribution"
-              chartType="bar"
-              data={housingAgeChartData}
-              xAxisKey="decade"
-              yAxisKey="value"
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {serviceRequestChartData && serviceRequestChartData.length > 0 && (
+              <GenericChart
+                title="311 Requests by Type"
+                chartType="bar"
+                data={serviceRequestChartData}
+                xAxisKey="name"
+                yAxisKey="value"
+                color="#2563EB"
+              />
+            )}
+            {housingAgeChartData && housingAgeChartData.length > 0 && (
+              <GenericChart
+                title="Housing Age Distribution"
+                chartType="bar"
+                data={housingAgeChartData}
+                xAxisKey="decade"
+                yAxisKey="value"
+                color="#2563EB"
+              />
+            )}
+          </div>
+          {serviceRequestsTrend && (
+            <TrendChart
+              title="311 Requests Year-over-Year (2020-2025)"
+              data={serviceRequestsTrend}
               color="#2563EB"
             />
           )}
