@@ -60,8 +60,8 @@ const DATA_LAYERS: DataLayerConfig[] = [
     url: `${ARCGIS_URLS.schools}/query`,
     color: "#1D4ED8",
     radius: 6,
-    opacity: 0.8,
-    layerType: "point",
+    opacity: 0.3,
+    layerType: "polygon",
   },
   {
     id: "libraries",
@@ -78,8 +78,8 @@ const DATA_LAYERS: DataLayerConfig[] = [
     url: `${ARCGIS_URLS.parks}/query`,
     color: "#15803D",
     radius: 5,
-    opacity: 0.6,
-    layerType: "point",
+    opacity: 0.3,
+    layerType: "polygon",
   },
   // Zone polygon layers
   {
@@ -253,11 +253,11 @@ export function DashboardMap({
       const config = DATA_LAYERS.find((l) => l.id === layerId);
       if (!config) continue;
 
-      // Polygon layers fetch full extent; point layers use spatial envelope
-      const url =
-        config.layerType === "polygon"
-          ? `${config.url}?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=500`
-          : buildSpatialGeoJsonUrl(config.url, currentEnvelope);
+      // Zone layers (TID/BID/OZ) fetch full extent; all others use spatial envelope
+      const isZoneLayer = ["tid", "bid", "opportunity"].includes(config.id);
+      const url = isZoneLayer
+        ? `${config.url}?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=500`
+        : buildSpatialGeoJsonUrl(config.url, currentEnvelope);
 
       fetch(url)
         .then((res) => res.json())
