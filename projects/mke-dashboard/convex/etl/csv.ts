@@ -188,8 +188,12 @@ export async function fetchTrafficCrashCount(envelope: Envelope): Promise<number
 
 export interface ServiceRequestAggregation {
   total: number;
+  resolved: number;
+  avgResolutionDays: number | null;
+  resolutionRate: number | null;
   byType: Record<string, number>;
   byMonth: Record<string, number>;
+  byStatus: Record<string, { total: number; resolved: number }>;
 }
 
 /**
@@ -201,8 +205,13 @@ export async function fetch311Data(
   _envelope: Envelope,
   zipCodes?: string[],
 ): Promise<ServiceRequestAggregation> {
+  const empty: ServiceRequestAggregation = {
+    total: 0, resolved: 0, avgResolutionDays: null, resolutionRate: null,
+    byType: {}, byMonth: {}, byStatus: {},
+  };
+
   if (!zipCodes || zipCodes.length === 0) {
-    return { total: 0, byType: {}, byMonth: {} };
+    return empty;
   }
 
   const records = await ckanFetchAll(
@@ -211,7 +220,8 @@ export async function fetch311Data(
   );
 
   const zipSet = new Set(zipCodes);
-  const result: ServiceRequestAggregation = { total: 0, byType: {}, byMonth: {} };
+  const result: ServiceRequestAggregation = { ...empty };
+  let totalResolutionDays = 0;
 
   for (const row of records) {
     const addr = String(row["OBJECTDESC"] ?? "");
@@ -231,7 +241,35 @@ export async function fetch311Data(
     if (month.length === 7) {
       result.byMonth[month] = (result.byMonth[month] ?? 0) + 1;
     }
+
+    // Track resolution status per type
+    if (!result.byStatus[title]) {
+      result.byStatus[title] = { total: 0, resolved: 0 };
+    }
+    result.byStatus[title].total++;
+
+    // Compute resolution time for closed requests
+    const closedStr = String(row["CLOSEDDATETIME"] ?? "");
+    if (closedStr && closedStr !== "null" && closedStr !== "" && dateStr) {
+      const createdDate = new Date(dateStr);
+      const closedDate = new Date(closedStr);
+      if (!isNaN(createdDate.getTime()) && !isNaN(closedDate.getTime())) {
+        const days = (closedDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (days >= 0) {
+          result.resolved++;
+          result.byStatus[title].resolved++;
+          totalResolutionDays += days;
+        }
+      }
+    }
   }
+
+  result.avgResolutionDays = result.resolved > 0
+    ? Math.round((totalResolutionDays / result.resolved) * 10) / 10
+    : null;
+  result.resolutionRate = result.total > 0
+    ? Math.round((result.resolved / result.total) * 100 * 10) / 10
+    : null;
 
   return result;
 }

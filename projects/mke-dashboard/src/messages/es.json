@@ -45,6 +45,8 @@
     "foreclosuresCity": "Ejecuciones Hipotecarias (Ciudad)",
     "foreclosuresBank": "Ejecuciones Hipotecarias (Banco)",
     "serviceRequests311": "Solicitudes de Servicio 311",
+    "resolutionRate": "Tasa de Resolución 311",
+    "avgResolutionDays": "Tiempo Promedio de Resolución",
     "buildingPermits": "Permisos de Construcción",
     "propertySales": "Ventas de Propiedades (2024)",
     "medianSalePrice": "Precio Medio de Venta",
@@ -71,7 +73,8 @@
     "schools": "escuelas",
     "licenses": "licencias",
     "sales": "ventas",
-    "permits": "permisos"
+    "permits": "permisos",
+    "days": "días"
   },
   "trends": {
     "improving": "mejorando",

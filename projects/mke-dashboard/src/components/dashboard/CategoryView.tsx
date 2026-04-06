@@ -22,9 +22,13 @@ interface CategoryViewProps {
   metrics: MetricCardProps[];
   crimeByType?: Record<string, number> | null;
   crimeByMonth?: Record<string, number> | null;
+  crimeByHour?: Record<string, number> | null;
   serviceRequestsByType?: Record<string, number> | null;
+  resolutionRate?: number | null;
+  avgResolutionDays?: number | null;
   housingAge?: Record<string, number> | null;
   zoneInfo?: ZoneInfo[];
+  salePriceByYear?: Record<string, number> | null;
   investmentByYear?: Record<string, number> | null;
   permitsByYear?: Record<string, number> | null;
   crimeTrend?: TrendDataPoint[] | null;
@@ -41,9 +45,13 @@ export function CategoryView({
   metrics,
   crimeByType,
   crimeByMonth,
+  crimeByHour,
   serviceRequestsByType,
+  resolutionRate,
+  avgResolutionDays,
   housingAge,
   zoneInfo,
+  salePriceByYear,
   investmentByYear,
   permitsByYear,
   crimeTrend,
@@ -72,6 +80,20 @@ export function CategoryView({
       }));
   }, [crimeByMonth]);
 
+  const crimeHourChartData = useMemo(() => {
+    if (!crimeByHour) return null;
+    const hourLabels = [
+      "12am", "1am", "2am", "3am", "4am", "5am",
+      "6am", "7am", "8am", "9am", "10am", "11am",
+      "12pm", "1pm", "2pm", "3pm", "4pm", "5pm",
+      "6pm", "7pm", "8pm", "9pm", "10pm", "11pm",
+    ];
+    return Array.from({ length: 24 }, (_, h) => ({
+      hour: hourLabels[h],
+      count: crimeByHour[String(h)] ?? 0,
+    }));
+  }, [crimeByHour]);
+
   const serviceRequestChartData = useMemo(() => {
     if (!serviceRequestsByType) return null;
     return Object.entries(serviceRequestsByType)
@@ -87,6 +109,15 @@ export function CategoryView({
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([decade, value]) => ({ decade, value }));
   }, [housingAge]);
+
+  const salePriceTrendData = useMemo(() => {
+    if (!salePriceByYear) return null;
+    const points = Object.entries(salePriceByYear)
+      .map(([year, value]) => ({ year: parseInt(year, 10), value }))
+      .filter((d) => d.value > 0)
+      .sort((a, b) => a.year - b.year);
+    return points.length >= 2 ? points : null;
+  }, [salePriceByYear]);
 
   if (filteredMetrics.length === 0) {
     return (
@@ -142,6 +173,17 @@ export function CategoryView({
               />
             )}
           </div>
+          {crimeHourChartData && crimeHourChartData.some((d) => d.count > 0) && (
+            <GenericChart
+              title="When Does Crime Happen?"
+              subtitle="Incidents by time of day (assault data)"
+              chartType="bar"
+              data={crimeHourChartData}
+              xAxisKey="hour"
+              yAxisKey="count"
+              color="#B84233"
+            />
+          )}
           {crimeTrend && (
             <TrendChart
               title="Crime Year-over-Year (2020-2025)"
@@ -154,6 +196,26 @@ export function CategoryView({
 
       {category === "qualityOfLife" && (
         <div className="space-y-4">
+          {(avgResolutionDays != null || resolutionRate != null) && (
+            <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950/30">
+              <span className="text-lg">311</span>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-foundry dark:text-limestone">
+                {avgResolutionDays != null && (
+                  <span>
+                    Avg <strong>{avgResolutionDays}</strong> days to resolve
+                  </span>
+                )}
+                {avgResolutionDays != null && resolutionRate != null && (
+                  <span className="text-limestone">|</span>
+                )}
+                {resolutionRate != null && (
+                  <span>
+                    <strong>{resolutionRate}%</strong> resolved
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {serviceRequestChartData && serviceRequestChartData.length > 0 && (
               <GenericChart
@@ -210,6 +272,15 @@ export function CategoryView({
 
       {category === "development" && (
         <div className="space-y-4">
+          {/* Median sale price trend */}
+          {salePriceTrendData && (
+            <TrendChart
+              title="Median Sale Price Trend"
+              data={salePriceTrendData}
+              color="#1A6B52"
+            />
+          )}
+
           {/* Investment timeline charts */}
           {(investmentByYear || permitsByYear) && (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

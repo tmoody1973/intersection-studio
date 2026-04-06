@@ -45,6 +45,8 @@
     "foreclosuresCity": "حجز عقاري (المدينة)",
     "foreclosuresBank": "حجز عقاري (البنك)",
     "serviceRequests311": "طلبات خدمة 311",
+    "resolutionRate": "معدل حل طلبات 311",
+    "avgResolutionDays": "متوسط وقت الحل",
     "buildingPermits": "تراخيص البناء",
     "propertySales": "مبيعات العقارات (2024)",
     "medianSalePrice": "متوسط سعر البيع",
@@ -71,7 +73,8 @@
     "schools": "مدارس",
     "licenses": "تراخيص",
     "sales": "مبيعات",
-    "permits": "تصاريح"
+    "permits": "تصاريح",
+    "days": "أيام"
   },
   "trends": {
     "improving": "تحسن",

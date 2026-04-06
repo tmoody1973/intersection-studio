@@ -63,8 +63,12 @@ export function DashboardShell() {
     neighborhoodName,
     crimeByType,
     crimeByMonth,
+    crimeByHour,
     serviceRequestsByType,
+    resolutionRate,
+    avgResolutionDays,
     housingAge,
+    salePriceByYear,
     investmentByYear,
     permitsByYear,
     crimeTrend,
@@ -212,8 +216,12 @@ export function DashboardShell() {
                 metrics={metrics}
                 crimeByType={crimeByType}
                 crimeByMonth={crimeByMonth}
+                crimeByHour={crimeByHour}
                 serviceRequestsByType={serviceRequestsByType}
+                resolutionRate={resolutionRate}
+                avgResolutionDays={avgResolutionDays}
                 housingAge={housingAge}
+                salePriceByYear={salePriceByYear}
                 investmentByYear={investmentByYear}
                 permitsByYear={permitsByYear}
                 crimeTrend={crimeTrend}

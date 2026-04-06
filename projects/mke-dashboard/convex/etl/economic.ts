@@ -88,6 +88,63 @@ export async function fetchPropertySales(
   };
 }
 
+// --- Sale Price History (multi-year median by Sale_date) ---
+
+function computeMedian(sorted: number[]): number {
+  if (sorted.length === 0) return 0;
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[mid - 1] + sorted[mid]) / 2
+    : sorted[mid];
+}
+
+/**
+ * Compute median sale price per year for a neighborhood.
+ * Parses Sale_date (format "MM/DD/YYYY") from the property sales dataset.
+ * Returns e.g. { "2020": 95000, "2021": 100000, ..., "2024": 138000 }
+ */
+export async function fetchSalesPriceHistory(
+  neighborhoodTaxkeys: Set<string>,
+): Promise<Record<string, number>> {
+  const records = await ckanFetchAll(
+    "01651dab-2be7-40c6-a9d6-31254fe02e29",
+    10000,
+  );
+
+  const pricesByYear: Record<string, number[]> = {};
+
+  for (const r of records) {
+    const taxkey = String(r["taxkey"] ?? "");
+    if (!taxkey || !neighborhoodTaxkeys.has(taxkey)) continue;
+
+    const price = Number(r["Sale_price"] ?? 0);
+    if (price <= 0) continue;
+
+    const dateStr = String(r["Sale_date"] ?? "");
+    // Format: "MM/DD/YYYY" or "YYYY-MM-DD"
+    let year: string | null = null;
+    if (dateStr.includes("/")) {
+      const parts = dateStr.split("/");
+      if (parts.length === 3 && parts[2].length === 4) year = parts[2];
+    } else if (dateStr.length >= 4) {
+      year = dateStr.substring(0, 4);
+    }
+
+    if (!year || isNaN(parseInt(year)) || parseInt(year) < 2000) continue;
+
+    if (!pricesByYear[year]) pricesByYear[year] = [];
+    pricesByYear[year].push(price);
+  }
+
+  const result: Record<string, number> = {};
+  for (const [year, prices] of Object.entries(pricesByYear)) {
+    prices.sort((a, b) => a - b);
+    result[year] = Math.round(computeMedian(prices));
+  }
+
+  return result;
+}
+
 // --- Liquor Licenses ---
 
 export interface LiquorLicenseAggregation {

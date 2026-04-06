@@ -25,6 +25,7 @@ export default defineSchema({
     crimeProperty: v.optional(v.number()),
     crimeByType: v.optional(v.string()), // JSON: {"Theft": 120, "Assault": 45, ...}
     crimeByMonth: v.optional(v.string()), // JSON: {"2026-01": 30, "2026-02": 25, ...}
+    crimeByHour: v.optional(v.string()), // JSON: {"0": 5, "1": 3, ..., "23": 8}
     part1CrimeCount: v.optional(v.number()), // Legacy (ArcGIS MPD Monthly)
     part1CrimeByType: v.optional(v.string()), // Legacy
     crimeYoYChange: v.optional(v.number()),
@@ -41,6 +42,9 @@ export default defineSchema({
     avgAssessedValue: v.optional(v.number()),
     housingAge: v.optional(v.string()),
     serviceRequests311: v.optional(v.number()),
+    serviceRequestsResolved: v.optional(v.number()),
+    serviceRequestsAvgDays: v.optional(v.number()),
+    serviceRequestsResolutionRate: v.optional(v.number()), // percentage
     serviceRequestsByType: v.optional(v.string()), // JSON
     serviceRequestsByMonth: v.optional(v.string()), // JSON
     buildingPermitCount: v.optional(v.number()),
@@ -62,6 +66,7 @@ export default defineSchema({
     liquorLicenseCount: v.optional(v.number()),
     totalPermitInvestment: v.optional(v.number()),
     newConstructionCount: v.optional(v.number()),
+    salePriceByYear: v.optional(v.string()), // JSON: {"2020": 95000, "2021": 100000, ...}
     investmentByYear: v.optional(v.string()), // JSON: {"2020": 5000000, ...}
     permitsByYear: v.optional(v.string()), // JSON: {"2020": 45, ...}
 

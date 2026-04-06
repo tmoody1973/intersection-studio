@@ -23,7 +23,7 @@ interface DataLayerConfig {
   color: string;
   radius: number;
   opacity: number;
-  layerType: "point" | "polygon";
+  layerType: "point" | "polygon" | "heatmap";
 }
 
 const DATA_LAYERS: DataLayerConfig[] = [
@@ -34,7 +34,7 @@ const DATA_LAYERS: DataLayerConfig[] = [
     color: "#B91C1C",
     radius: 4,
     opacity: 0.7,
-    layerType: "point",
+    layerType: "heatmap",
   },
   {
     id: "foreclosures",
@@ -434,7 +434,7 @@ export function DashboardMap({
         </Source>
       )}
 
-      {/* Dynamic data layers (points + polygons) */}
+      {/* Dynamic data layers (points, polygons, heatmaps) */}
       {DATA_LAYERS.map((config) => {
         const data = layerData[config.id];
         if (!data || !activeLayers.includes(config.id)) return null;
@@ -457,6 +457,32 @@ export function DashboardMap({
                   "line-color": config.color,
                   "line-width": 1.5,
                   "line-opacity": 0.5,
+                }}
+              />
+            </Source>
+          );
+        }
+
+        if (config.layerType === "heatmap") {
+          return (
+            <Source key={config.id} id={config.id} type="geojson" data={data}>
+              <Layer
+                id={`${config.id}-heatmap`}
+                type="heatmap"
+                paint={{
+                  "heatmap-weight": 1,
+                  "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 11, 1, 15, 3],
+                  "heatmap-color": [
+                    "interpolate", ["linear"], ["heatmap-density"],
+                    0, "rgba(0,0,0,0)",
+                    0.2, "#ffffb2",
+                    0.4, "#fd8d3c",
+                    0.6, "#f03b20",
+                    0.8, "#bd0026",
+                    1, "#800026",
+                  ],
+                  "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 11, 15, 15, 25],
+                  "heatmap-opacity": 0.7,
                 }}
               />
             </Source>

@@ -45,6 +45,8 @@
     "foreclosuresCity": "Kev Txeeb Tsev (Nroog)",
     "foreclosuresBank": "Kev Txeeb Tsev (Txhab Nyiaj)",
     "serviceRequests311": "Kev Thov 311",
+    "resolutionRate": "Tus Nqi Daws 311",
+    "avgResolutionDays": "Sij Hawm Daws Nruab Nrab",
     "buildingPermits": "Ntawv Tso Cai Tsev",
     "propertySales": "Kev Muag Vaj Tsev (2024)",
     "medianSalePrice": "Nqi Muag Nruab Nrab",
@@ -71,7 +73,8 @@
     "schools": "tsev kawm ntawv",
     "licenses": "ntawv tso cai",
     "sales": "kev muag",
-    "permits": "ntawv tso cai tsev"
+    "permits": "ntawv tso cai tsev",
+    "days": "hnub"
   },
   "trends": {
     "improving": "zoo tuaj",

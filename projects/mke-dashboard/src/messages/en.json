@@ -45,6 +45,8 @@
     "foreclosuresCity": "Foreclosures (City-Owned)",
     "foreclosuresBank": "Foreclosures (Bank-Owned)",
     "serviceRequests311": "311 Service Requests",
+    "resolutionRate": "311 Resolution Rate",
+    "avgResolutionDays": "Avg Resolution Time",
     "buildingPermits": "Building Permits",
     "propertySales": "Property Sales (2024)",
     "medianSalePrice": "Median Sale Price",
@@ -71,7 +73,8 @@
     "schools": "schools",
     "licenses": "licenses",
     "sales": "sales",
-    "permits": "permits"
+    "permits": "permits",
+    "days": "days"
   },
   "trends": {
     "improving": "improving",

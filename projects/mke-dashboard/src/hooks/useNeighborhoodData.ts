@@ -26,10 +26,20 @@ export function useNeighborhoodData(slug: string) {
     try { return JSON.parse(neighborhood.crimeByMonth) as Record<string, number>; } catch { return null; }
   }, [neighborhood?.crimeByMonth]);
 
+  const crimeByHour = useMemo(() => {
+    if (!neighborhood?.crimeByHour) return null;
+    try { return JSON.parse(neighborhood.crimeByHour) as Record<string, number>; } catch { return null; }
+  }, [neighborhood?.crimeByHour]);
+
   const housingAge = useMemo(() => {
     if (!neighborhood?.housingAge) return null;
     try { return JSON.parse(neighborhood.housingAge) as Record<string, number>; } catch { return null; }
   }, [neighborhood?.housingAge]);
+
+  const salePriceByYear = useMemo(() => {
+    if (!neighborhood?.salePriceByYear) return null;
+    try { return JSON.parse(neighborhood.salePriceByYear) as Record<string, number>; } catch { return null; }
+  }, [neighborhood?.salePriceByYear]);
 
   const investmentByYear = useMemo(() => {
     if (!neighborhood?.investmentByYear) return null;
@@ -147,8 +157,12 @@ export function useNeighborhoodData(slug: string) {
     neighborhoodName: neighborhood?.name ?? slug,
     crimeByType,
     crimeByMonth,
+    crimeByHour,
     housingAge,
     serviceRequestsByType,
+    resolutionRate: neighborhood?.serviceRequestsResolutionRate ?? null,
+    avgResolutionDays: neighborhood?.serviceRequestsAvgDays ?? null,
+    salePriceByYear,
     investmentByYear,
     permitsByYear,
     crimeTrend,

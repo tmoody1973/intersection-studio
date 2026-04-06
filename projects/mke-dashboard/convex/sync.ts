@@ -27,7 +27,7 @@ import {
   aggregateForNeighborhood,
 } from "./etl/census";
 import { fetchCommunityResources } from "./etl/community";
-import { fetchPropertySales, fetchLiquorLicenses, fetchPermitInvestmentFromCache } from "./etl/economic";
+import { fetchPropertySales, fetchSalesPriceHistory, fetchLiquorLicenses, fetchPermitInvestmentFromCache } from "./etl/economic";
 import { fetchDevelopmentZones } from "./etl/zones";
 
 /**
@@ -222,6 +222,7 @@ interface CrimePhaseResult {
   crimeProperty: number | undefined;
   crimeByType: string | undefined;
   crimeByMonth: string | undefined;
+  crimeByHour: string | undefined;
   part1CrimeCount: number;
   part1CrimeByType: string;
   overdoseCount: number | undefined;
@@ -253,6 +254,31 @@ async function syncCrimePhase(envelope: Envelope): Promise<CrimePhaseResult> {
       crimeByTypeArcgis[type] = counts[i];
       part1CrimeCount += counts[i];
     });
+  }
+
+  // Fetch Assault features (layer 9, highest volume) to build hour-of-day distribution
+  let crimeByHour: string | undefined;
+  try {
+    const features = await spatialFeatures(
+      `${ENDPOINTS.crimeMonthly}/9`,
+      "1=1",
+      "REPORTEDDATETIME",
+      envelope,
+      2000,
+    );
+    const hourCounts: Record<string, number> = {};
+    for (let h = 0; h < 24; h++) hourCounts[String(h)] = 0;
+    for (const f of features) {
+      const ts = f.REPORTEDDATETIME;
+      if (typeof ts === "number" && ts > 0) {
+        const hour = new Date(ts).getHours();
+        hourCounts[String(hour)] = (hourCounts[String(hour)] ?? 0) + 1;
+      }
+    }
+    const hasData = Object.values(hourCounts).some((v) => v > 0);
+    if (hasData) crimeByHour = JSON.stringify(hourCounts);
+  } catch (e) {
+    console.error("Crime by-hour aggregation failed:", e);
   }
 
   // WIBR CSV crime data
@@ -300,6 +326,7 @@ async function syncCrimePhase(envelope: Envelope): Promise<CrimePhaseResult> {
     crimeProperty: crimeData.property,
     crimeByType: crimeData.byType,
     crimeByMonth: crimeData.byMonth,
+    crimeByHour,
     part1CrimeCount,
     part1CrimeByType: JSON.stringify(crimeByTypeArcgis),
     overdoseCount,
@@ -315,6 +342,7 @@ interface EconomicPhaseResult {
   propertySalesCount: number | undefined;
   medianSalePrice: number | undefined;
   totalSalesVolume: number | undefined;
+  salePriceByYear: string | undefined;
   liquorLicenseCount: number | undefined;
   totalPermitInvestment: number | undefined;
   newConstructionCount: number | undefined;
@@ -323,6 +351,9 @@ interface EconomicPhaseResult {
   permitsByYear: string | undefined;
   buildingPermitsByType: string | undefined;
   serviceRequests311: number | undefined;
+  serviceRequestsResolved: number | undefined;
+  serviceRequestsAvgDays: number | undefined;
+  serviceRequestsResolutionRate: number | undefined;
   serviceRequestsByType: string | undefined;
   serviceRequestsByMonth: string | undefined;
 }
@@ -334,11 +365,17 @@ async function syncEconomicPhase(
   maiCacheMap: Map<string, string> | undefined,
 ): Promise<EconomicPhaseResult> {
   // 311 Service Requests
-  let serviceRequests: { total?: number; byType?: string; byMonth?: string } = {};
+  let serviceRequests: {
+    total?: number; resolved?: number; avgDays?: number; resolutionRate?: number;
+    byType?: string; byMonth?: string;
+  } = {};
   try {
     const sr = await fetch311Data(envelope, neighborhoodZips);
     serviceRequests = {
       total: sr.total,
+      resolved: sr.resolved || undefined,
+      avgDays: sr.avgResolutionDays ?? undefined,
+      resolutionRate: sr.resolutionRate ?? undefined,
       byType: JSON.stringify(sr.byType),
       byMonth: JSON.stringify(sr.byMonth),
     };
@@ -358,16 +395,22 @@ async function syncEconomicPhase(
     console.error("Permits CSV fetch failed:", e);
   }
 
-  // Property Sales
+  // Property Sales + historical price trends
   let propertySalesCount: number | undefined;
   let medianSalePrice: number | undefined;
   let totalSalesVolume: number | undefined;
+  let salePriceByYear: string | undefined;
   try {
     if (neighborhoodTaxkeys.size > 0) {
-      const sales = await fetchPropertySales(neighborhoodTaxkeys);
+      const [sales, priceHistory] = await Promise.all([
+        fetchPropertySales(neighborhoodTaxkeys),
+        fetchSalesPriceHistory(neighborhoodTaxkeys),
+      ]);
       propertySalesCount = sales.totalSales || undefined;
       medianSalePrice = sales.medianSalePrice ?? undefined;
       totalSalesVolume = sales.totalVolume || undefined;
+      salePriceByYear = Object.keys(priceHistory).length > 0
+        ? JSON.stringify(priceHistory) : undefined;
     }
   } catch (e) {
     console.error("Property sales fetch failed:", e);
@@ -409,6 +452,7 @@ async function syncEconomicPhase(
     propertySalesCount,
     medianSalePrice,
     totalSalesVolume,
+    salePriceByYear,
     liquorLicenseCount,
     totalPermitInvestment,
     newConstructionCount,
@@ -417,6 +461,9 @@ async function syncEconomicPhase(
     permitsByYear,
     buildingPermitsByType: permitData.byType,
     serviceRequests311: serviceRequests.total,
+    serviceRequestsResolved: serviceRequests.resolved,
+    serviceRequestsAvgDays: serviceRequests.avgDays,
+    serviceRequestsResolutionRate: serviceRequests.resolutionRate,
     serviceRequestsByType: serviceRequests.byType,
     serviceRequestsByMonth: serviceRequests.byMonth,
   };
@@ -654,6 +701,7 @@ export const syncNeighborhood = internalAction({
           crimeProperty: crimeResult.crimeProperty,
           crimeByType: crimeResult.crimeByType,
           crimeByMonth: crimeResult.crimeByMonth,
+          crimeByHour: crimeResult.crimeByHour,
           part1CrimeCount: crimeResult.part1CrimeCount,
           part1CrimeByType: crimeResult.part1CrimeByType,
           overdoseCount: crimeResult.overdoseCount,
@@ -664,6 +712,7 @@ export const syncNeighborhood = internalAction({
           propertySalesCount: economicResult.propertySalesCount,
           medianSalePrice: economicResult.medianSalePrice,
           totalSalesVolume: economicResult.totalSalesVolume,
+          salePriceByYear: economicResult.salePriceByYear,
           liquorLicenseCount: economicResult.liquorLicenseCount,
           totalPermitInvestment: economicResult.totalPermitInvestment,
           newConstructionCount: economicResult.newConstructionCount,
@@ -672,6 +721,9 @@ export const syncNeighborhood = internalAction({
           investmentByYear: economicResult.investmentByYear,
           permitsByYear: economicResult.permitsByYear,
           serviceRequests311: economicResult.serviceRequests311,
+          serviceRequestsResolved: economicResult.serviceRequestsResolved,
+          serviceRequestsAvgDays: economicResult.serviceRequestsAvgDays,
+          serviceRequestsResolutionRate: economicResult.serviceRequestsResolutionRate,
           serviceRequestsByType: economicResult.serviceRequestsByType,
           serviceRequestsByMonth: economicResult.serviceRequestsByMonth,
         } : {}),
@@ -737,6 +789,7 @@ export const upsertNeighborhood = internalMutation({
     propertySalesCount: v.optional(v.number()),
     medianSalePrice: v.optional(v.number()),
     totalSalesVolume: v.optional(v.number()),
+    salePriceByYear: v.optional(v.string()),
     liquorLicenseCount: v.optional(v.number()),
     totalPermitInvestment: v.optional(v.number()),
     newConstructionCount: v.optional(v.number()),
@@ -761,6 +814,7 @@ export const upsertNeighborhood = internalMutation({
     crimeProperty: v.optional(v.number()),
     crimeByType: v.optional(v.string()),
     crimeByMonth: v.optional(v.string()),
+    crimeByHour: v.optional(v.string()),
     // Crime (ArcGIS MPD — legacy/fallback)
     part1CrimeCount: v.optional(v.number()),
     part1CrimeByType: v.optional(v.string()),
@@ -772,6 +826,9 @@ export const upsertNeighborhood = internalMutation({
     medianHomeValue: v.optional(v.number()),
     // 311 Service Requests
     serviceRequests311: v.optional(v.number()),
+    serviceRequestsResolved: v.optional(v.number()),
+    serviceRequestsAvgDays: v.optional(v.number()),
+    serviceRequestsResolutionRate: v.optional(v.number()),
     serviceRequestsByType: v.optional(v.string()),
     serviceRequestsByMonth: v.optional(v.string()),
     // Building Permits
