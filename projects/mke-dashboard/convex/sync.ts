@@ -370,7 +370,8 @@ export const syncNeighborhood = internalAction({
         medianAssessedValue: avgAssessedValue ?? undefined,
         avgAssessedValue: avgAssessedValue ?? undefined,
         vacantLandCount,
-        vacantBuildingCount: csvVacantCount ?? vacantBuildingCount,
+        // Use Accela CSV if it has data, otherwise fall back to ArcGIS Strong Neighborhoods
+        vacantBuildingCount: (csvVacantCount && csvVacantCount > 0) ? csvVacantCount : vacantBuildingCount,
         foreclosureCityCount,
         foreclosureBankCount,
         housingAge,

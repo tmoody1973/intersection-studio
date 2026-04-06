@@ -58,17 +58,23 @@ export function ComparisonView({ onClose, initialSlugA = "harambee", initialSlug
   const comparison = useQuery(api.neighborhoods.compare, { slugA, slugB });
   const allNeighborhoods = useQuery(api.neighborhoods.getAll);
 
-  const cityAverages = useMemo(() => {
-    if (!allNeighborhoods || allNeighborhoods.length === 0) return null;
-    const avgs: Record<string, number | null> = {};
-    for (const metric of METRICS) {
-      const values = allNeighborhoods
-        .map((n) => getMetricValue(n as Record<string, unknown>, metric.key))
-        .filter((v): v is number => v !== null);
-      avgs[metric.key] = values.length > 0 ? Math.round(values.reduce((sum, v) => sum + v, 0) / values.length) : null;
-    }
-    return avgs;
-  }, [allNeighborhoods]);
+  // True citywide averages from Census ACS 5-Year (2023) for Milwaukee city
+  // NOT the average of our 8 target neighborhoods
+  const cityAverages: Record<string, number | null> = {
+    population: 569756,
+    medianIncome: 51888,
+    povertyRate: 23,
+    crimeTotal: null, // No single citywide crime figure available
+    foreclosureCityCount: null,
+    vacantBuildingCount: null,
+    serviceRequests311: null,
+    buildingPermitCount: null,
+    medianSalePrice: null,
+    totalProperties: 159983,
+    ownerOccupiedRate: 61,
+    unemploymentRate: 6,
+    medianHomeValue: 172000,
+  };
 
   const nameA = TARGET_NEIGHBORHOODS.find((n) => n.slug === slugA)?.name ?? slugA;
   const nameB = TARGET_NEIGHBORHOODS.find((n) => n.slug === slugB)?.name ?? slugB;
