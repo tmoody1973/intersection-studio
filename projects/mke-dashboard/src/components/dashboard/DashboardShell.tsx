@@ -169,8 +169,8 @@ export function DashboardShell() {
 
         {/* Data freshness indicator */}
         {raw?.lastSyncAt && (
-          <div className="mb-4 flex items-center gap-2 text-[10px] text-limestone">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-positive" />
+          <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md bg-limestone/5 px-3 py-1.5 text-[11px] text-foundry">
+            <span className="inline-block h-2 w-2 rounded-full bg-positive" />
             <span>
               Data last updated: {new Date(raw.lastSyncAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}
             </span>

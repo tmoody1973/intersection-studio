@@ -122,11 +122,13 @@ export function CategoryView({
             {crimeTypeChartData && crimeTypeChartData.length > 0 && (
               <GenericChart
                 title="Crime by Type"
-                chartType="bar"
+                subtitle="Breakdown of reported incidents"
+                chartType="horizontal-bar"
                 data={crimeTypeChartData}
                 xAxisKey="name"
                 yAxisKey="value"
                 color="#B84233"
+                height={Math.max(220, crimeTypeChartData.length * 28)}
               />
             )}
             {crimeMonthChartData && crimeMonthChartData.length > 1 && (
@@ -144,7 +146,7 @@ export function CategoryView({
             <TrendChart
               title="Crime Year-over-Year (2020-2025)"
               data={crimeTrend}
-              color="#B84233"
+              lowerIsBetter
             />
           )}
         </div>
@@ -156,11 +158,13 @@ export function CategoryView({
             {serviceRequestChartData && serviceRequestChartData.length > 0 && (
               <GenericChart
                 title="311 Requests by Type"
-                chartType="bar"
+                subtitle="What residents are reporting to the city"
+                chartType="horizontal-bar"
                 data={serviceRequestChartData}
                 xAxisKey="name"
                 yAxisKey="value"
                 color="#2563EB"
+                height={Math.max(220, serviceRequestChartData.length * 28)}
               />
             )}
             {housingAgeChartData && housingAgeChartData.length > 0 && (
@@ -178,33 +182,13 @@ export function CategoryView({
             <TrendChart
               title="311 Requests Year-over-Year (2020-2025)"
               data={serviceRequestsTrend}
-              color="#2563EB"
+              lowerIsBetter
             />
           )}
         </div>
       )}
 
-      {category === "community" && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {/* Community resources summary */}
-          {filteredMetrics.some((m) =>
-            ["libraries", "schools", "parks", "daycares"].includes(m.id),
-          ) && (
-            <GenericChart
-              title="Community Resources"
-              chartType="bar"
-              data={filteredMetrics
-                .filter((m) =>
-                  ["libraries", "schools", "parks", "daycares"].includes(m.id),
-                )
-                .map((m) => ({ name: m.label, value: m.value ?? 0 }))}
-              xAxisKey="name"
-              yAxisKey="value"
-              color="#1A6B52"
-            />
-          )}
-        </div>
-      )}
+      {/* Community tab: metric cards are sufficient, no chart needed */}
 
       {category === "wellness" && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
