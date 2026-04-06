@@ -90,6 +90,9 @@ export default defineSchema({
     // Trend data
     previousPeriod: v.optional(v.string()),
 
+    // Source health tracking (protects against zero-count overwrites)
+    sourceHealth: v.optional(v.string()), // JSON: {"wibr": {"lastGoodCount": 59, "lastGoodAt": 17753...}, ...}
+
     // Sync metadata
     lastSyncAt: v.number(),
     lastSyncStatus: v.string(),
@@ -148,6 +151,17 @@ export default defineSchema({
   })
     .index("by_user", ["tokenIdentifier"])
     .index("by_neighborhood", ["neighborhoodSlug"]),
+
+  /**
+   * Cached MAI (Master Address Index) address→taxkey mapping.
+   * Rebuilt weekly to avoid downloading 334K records per sync.
+   * Single document containing the full map as JSON string.
+   */
+  maiCache: defineTable({
+    mapJson: v.string(), // JSON: {"612 W ABBOTT AV": "1234567890", ...}
+    recordCount: v.number(),
+    builtAt: v.number(),
+  }),
 
   /**
    * Community feedback — submitted via CopilotKit chat or UI.

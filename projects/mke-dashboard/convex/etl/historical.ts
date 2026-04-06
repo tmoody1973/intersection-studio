@@ -5,6 +5,7 @@
  */
 
 import type { Envelope } from "./arcgis";
+import { stPlaneToWgs84, isInEnvelope } from "./coordinates";
 
 const CKAN_BASE = "https://data.milwaukee.gov/api/3/action/datastore_search";
 
@@ -20,26 +21,6 @@ const HISTORICAL_RESOURCES = {
   crimeHistorical: "395db729-a30a-4e53-ab66-faeb5e1899c8",
   service311Historical: "abdfe983-e856-40cd-bee2-85e78454344a",
 } as const;
-
-// --- State Plane to WGS84 (same as csv.ts) ---
-
-function stPlaneToWgs84(x: number, y: number): { lat: number; lng: number } {
-  const refX = 2530700;
-  const refY = 393200;
-  const refLng = -87.9065;
-  const refLat = 43.0389;
-  const ftPerDegLng = 263260;
-  const ftPerDegLat = 364567;
-
-  return {
-    lng: refLng + (x - refX) / ftPerDegLng,
-    lat: refLat + (y - refY) / ftPerDegLat,
-  };
-}
-
-function isInEnvelope(lat: number, lng: number, env: Envelope): boolean {
-  return lng >= env.xmin && lng <= env.xmax && lat >= env.ymin && lat <= env.ymax;
-}
 
 // --- Paginated CKAN fetch with year filter ---
 

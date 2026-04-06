@@ -1,49 +1,25 @@
 import type { CategoryTab, CategoryId } from "@/types/metrics";
 
-// --- ArcGIS REST Endpoints (CORRECTED per research validation) ---
+// --- ArcGIS REST Endpoints ---
+// Source of truth: convex/config.ts (ARCGIS_ENDPOINTS)
+// Duplicated here because Next.js and Convex have different module resolution.
+// If URLs change, update convex/config.ts first, then sync here.
 
-const ARCGIS_BASE =
-  "https://milwaukeemaps.milwaukee.gov/arcgis/rest/services";
+import {
+  ARCGIS_ENDPOINTS,
+  OPEN_DATA_BASE,
+  TARGET_NEIGHBORHOODS,
+  NEIGHBORHOOD_CENSUS_TRACTS,
+  MPROP_QUERIES,
+} from "../../convex/config";
+import type { NeighborhoodDef } from "../../convex/config";
 
-export const ARCGIS_URLS = {
-  // Property
-  mprop: `${ARCGIS_BASE}/property/parcels_mprop/MapServer/2`,
-  foreclosedCityOwned: `${ARCGIS_BASE}/property/foreclosed_properties/MapServer/13`,
-  foreclosedBankOwned: `${ARCGIS_BASE}/property/foreclosed_properties/MapServer/23`,
-  governmentOwned: `${ARCGIS_BASE}/property/govt_owned/MapServer`,
-  parks: `${ARCGIS_BASE}/property/parcels_mprop/MapServer/16`,
-  schools: `${ARCGIS_BASE}/property/parcels_mprop/MapServer/18`,
-  // Public Safety
-  crimeMonthly: `${ARCGIS_BASE}/MPD/MPD_Monthly/MapServer`,
-  policeStations: `${ARCGIS_BASE}/MPD/MPD_stations/MapServer/0`,
-  policeDistricts: `${ARCGIS_BASE}/MPD/MPD_geography/MapServer/2`,
-  firehouses: `${ARCGIS_BASE}/MFD/MFD_RiskReduction/MapServer/0`,
-  // Planning
-  neighborhoods: `${ARCGIS_BASE}/planning/special_districts/MapServer/4`,
-  zoning: `${ARCGIS_BASE}/planning/zoning/MapServer/11`,
-  // Development zone districts
-  tidDistricts: `${ARCGIS_BASE}/planning/special_districts/MapServer/8`,
-  bidDistricts: `${ARCGIS_BASE}/planning/special_districts/MapServer/3`,
-  tinDistricts: `${ARCGIS_BASE}/planning/special_districts/MapServer/13`,
-  opportunityZones: `${ARCGIS_BASE}/planning/special_districts/MapServer/9`,
-  nidDistricts: `${ARCGIS_BASE}/planning/special_districts/MapServer/5`,
-  // Quality of Life
-  strongNeighborhoods: `${ARCGIS_BASE}/StrongNeighborhood/StrongNeighborhood/MapServer/0`,
-  // Community
-  libraries: `${ARCGIS_BASE}/AGO/LibraryServices/MapServer/0`,
-  liquorLicenses: `${ARCGIS_BASE}/regulation/license/MapServer/0`,
-  // DPW
-  dpwForestry: `${ARCGIS_BASE}/DPW/DPW_forestry/MapServer`,
-  dpwOperations: `${ARCGIS_BASE}/DPW/DPW_Operations/MapServer`,
-  dpwSanitation: `${ARCGIS_BASE}/DPW/DPW_Sanitation/MapServer`,
-  dpwStreetcar: `${ARCGIS_BASE}/DPW/DPW_streetcar/MapServer`,
-  parkingMeters: `${ARCGIS_BASE}/DPW/ParkingMeters/MapServer`,
-  pavingProgram: `${ARCGIS_BASE}/DPW/paving_program/MapServer`,
-} as const;
-
-export const OPEN_DATA_BASE = "https://data.milwaukee.gov";
+export const ARCGIS_URLS = ARCGIS_ENDPOINTS;
+export { OPEN_DATA_BASE, TARGET_NEIGHBORHOODS, NEIGHBORHOOD_CENSUS_TRACTS, MPROP_QUERIES };
+export type { NeighborhoodDef };
 
 // --- CSV Direct Download URLs (from data.milwaukee.gov) ---
+// These are direct download links, separate from the CKAN API resource IDs in convex/config.ts.
 
 export const CSV_URLS = {
   /** WIBR Crime Data — daily, incident-level with lat/lng */
@@ -141,73 +117,6 @@ export const DEFAULT_CATEGORIES: CategoryTab[] = [
   },
 ];
 
-// --- Target Neighborhoods (Phase 1: 8 northside neighborhoods) ---
-// Names match DCD neighborhood boundaries layer (NEIGHBORHD field, uppercase)
-
-export const TARGET_NEIGHBORHOODS = [
-  { name: "Amani", slug: "amani", dcdName: "AMANI" },
-  { name: "Borchert Field", slug: "borchert-field", dcdName: "BORCHERT FIELD" },
-  { name: "Franklin Heights", slug: "franklin-heights", dcdName: "FRANKLIN HEIGHTS" },
-  { name: "Harambee", slug: "harambee", dcdName: "HARAMBEE" },
-  { name: "Havenwoods", slug: "havenwoods", dcdName: "HAVENWOODS" },
-  { name: "Lindsay Heights", slug: "lindsay-heights", dcdName: "NORTH DIVISION" },
-  { name: "Metcalfe Park", slug: "metcalfe-park", dcdName: "METCALFE PARK" },
-  { name: "Sherman Park", slug: "sherman-park", dcdName: "SHERMAN PARK" },
-] as const;
-
-export type NeighborhoodDef = (typeof TARGET_NEIGHBORHOODS)[number];
-
-// --- Authoritative Census Tract Mappings ---
-// Source: Data You Can Use Neighborhood Portraits (datayoucanuse.org)
-// These use NSP (Neighborhood Strategic Planning) boundaries, the standard
-// for Census-to-neighborhood aggregation in Milwaukee.
-//
-// Note: Some tracts are shared between adjacent neighborhoods (e.g., tract 88
-// appears in both Amani and Metcalfe Park, tract 62 in both Metcalfe Park and
-// Sherman Park). This is standard practice — Census tracts don't align perfectly
-// with neighborhood boundaries.
-//
-// For Franklin Heights and Havenwoods, no DYCU portrait exists yet.
-// These use the best-fit tracts from the DCD bounding box query,
-// filtered to tracts with significant parcel overlap (>= 100 parcels).
-
-export const NEIGHBORHOOD_CENSUS_TRACTS: Record<string, number[]> = {
-  amani: [64, 65, 87, 88],
-  "borchert-field": [66, 68],
-  "franklin-heights": [47, 63, 64, 65], // estimated — no DYCU portrait
-  harambee: [67, 68, 69, 70, 71, 81, 84, 106, 1856, 1857],
-  havenwoods: [11, 12, 19], // estimated — no DYCU portrait
-  "lindsay-heights": [84, 85, 86],
-  "metcalfe-park": [62, 88, 89, 90, 98, 99],
-  "sherman-park": [37, 38, 39, 48, 49, 50, 59, 60, 61, 62],
-} as const;
-
 // --- Auth Tiers ---
 
 export type AuthTier = "public" | "authenticated" | "city_official";
-
-// --- MPROP Queries (CORRECTED per research validation) ---
-// NOTE: TAX_DELQ, RAZE_STATUS, BI_VIOL have sentinel values in ArcGIS.
-// Use alternative sources for those metrics.
-
-export const MPROP_QUERIES = {
-  /**
-   * Vacant/undeveloped land parcels (11,414 citywide).
-   * C_A_CLASS is a String field, not Integer — must use quotes.
-   * Class 5 = "Undeveloped" in the assessor's classification.
-   */
-  vacantLand: "C_A_CLASS = '5'",
-  /**
-   * Tighter filter: vacant land with zero improvements (607 citywide).
-   * Use this for "truly empty lots" vs. the broader undeveloped count.
-   */
-  vacantLandStrict: "C_A_CLASS IN ('2','5') AND C_A_IMPRV = '0'",
-  ownerOccupied: "OWN_OCPD = 'O'",
-  allProperties: "1=1",
-} as const;
-
-/**
- * Strong Neighborhoods has 1,552 vacant BUILDINGS (structures).
- * This is a different metric from vacant LAND parcels above.
- * Dashboard shows both: "Undeveloped Land" + "Vacant Buildings"
- */

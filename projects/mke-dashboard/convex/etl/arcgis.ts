@@ -3,16 +3,16 @@
  * These run in Convex's serverless environment, not the browser.
  */
 
-const ARCGIS_BASE =
-  "https://milwaukeemaps.milwaukee.gov/arcgis/rest/services";
+import { ARCGIS_ENDPOINTS } from "../config";
 
+// Re-export the subset used by ETL consumers for backward compat
 export const ENDPOINTS = {
-  mprop: `${ARCGIS_BASE}/property/parcels_mprop/MapServer/2`,
-  foreclosedCityOwned: `${ARCGIS_BASE}/property/foreclosed_properties/MapServer/13`,
-  foreclosedBankOwned: `${ARCGIS_BASE}/property/foreclosed_properties/MapServer/23`,
-  neighborhoods: `${ARCGIS_BASE}/planning/special_districts/MapServer/4`,
-  strongNeighborhoods: `${ARCGIS_BASE}/StrongNeighborhood/StrongNeighborhood/MapServer/0`,
-  crimeMonthly: `${ARCGIS_BASE}/MPD/MPD_Monthly/MapServer`,
+  mprop: ARCGIS_ENDPOINTS.mprop,
+  foreclosedCityOwned: ARCGIS_ENDPOINTS.foreclosedCityOwned,
+  foreclosedBankOwned: ARCGIS_ENDPOINTS.foreclosedBankOwned,
+  neighborhoods: ARCGIS_ENDPOINTS.neighborhoods,
+  strongNeighborhoods: ARCGIS_ENDPOINTS.strongNeighborhoods,
+  crimeMonthly: ARCGIS_ENDPOINTS.crimeMonthly,
 } as const;
 
 // --- Types ---

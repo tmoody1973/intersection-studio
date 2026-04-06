@@ -5,10 +5,10 @@
  */
 
 import type { Envelope } from "./arcgis";
+import { stPlaneToWgs84, isInEnvelope } from "./coordinates";
+import { CKAN_BASE, CKAN_RESOURCE_IDS } from "../config";
 
 // --- CKAN Datastore API ---
-
-const CKAN_BASE = "https://data.milwaukee.gov/api/3/action/datastore_search";
 
 interface CkanResponse {
   success: boolean;
@@ -48,39 +48,6 @@ async function ckanFetchAll(
   return allRecords;
 }
 
-// --- State Plane to WGS84 (Milwaukee area approximation) ---
-
-function stPlaneToWgs84(x: number, y: number): { lat: number; lng: number } {
-  const refX = 2530700;
-  const refY = 393200;
-  const refLng = -87.9065;
-  const refLat = 43.0389;
-  const ftPerDegLng = 263260;
-  const ftPerDegLat = 364567;
-
-  return {
-    lng: refLng + (x - refX) / ftPerDegLng,
-    lat: refLat + (y - refY) / ftPerDegLat,
-  };
-}
-
-function isInEnvelope(lat: number, lng: number, env: Envelope): boolean {
-  return lng >= env.xmin && lng <= env.xmax && lat >= env.ymin && lat <= env.ymax;
-}
-
-// --- CKAN Resource IDs ---
-
-const RESOURCES = {
-  /** WIBR Crime Data (Current) — daily, ~5K records */
-  crime: "87843297-a6fa-46d4-ba5d-cb342fb2d3bb",
-  /** Accela Vacant Buildings — weekly */
-  vacantBuildings: "46dca88b-fec0-48f1-bda6-7296249ea61f",
-  /** EMS Calls for Service Detail */
-  emsCalls: "06fd2a64-4348-461a-bda4-5e09b2500615",
-  /** Traffic Crashes */
-  trafficCrashes: "8fffaa3a-b500-4561-8898-78a424bdacee",
-} as const;
-
 // --- Crime Data (WIBR) ---
 
 export interface CrimeAggregation {
@@ -99,7 +66,7 @@ const CRIME_COLUMNS = [
 const VIOLENT_CRIMES = new Set(["Homicide", "AssaultOffense", "Robbery", "SexOffense"]);
 
 export async function fetchCrimeData(envelope: Envelope): Promise<CrimeAggregation> {
-  const records = await ckanFetchAll(RESOURCES.crime, 10000);
+  const records = await ckanFetchAll(CKAN_RESOURCE_IDS.crime, 10000);
 
   const result: CrimeAggregation = {
     total: 0, byType: {}, byMonth: {}, violent: 0, property: 0,
@@ -142,7 +109,7 @@ export interface VacantBuildingAggregation {
 export async function fetchVacantBuildingData(
   envelope: Envelope,
 ): Promise<VacantBuildingAggregation> {
-  const records = await ckanFetchAll(RESOURCES.vacantBuildings, 5000);
+  const records = await ckanFetchAll(CKAN_RESOURCE_IDS.vacantBuildings, 5000);
 
   let total = 0;
   for (const row of records) {
@@ -167,7 +134,7 @@ export async function fetchVacantBuildingData(
 // --- EMS / Overdose ---
 
 export async function fetchOverdoseCount(envelope: Envelope): Promise<number> {
-  const records = await ckanFetchAll(RESOURCES.emsCalls, 10000);
+  const records = await ckanFetchAll(CKAN_RESOURCE_IDS.emsCalls, 10000);
 
   const overdoseKeywords = ["overdose", "narcan", "naloxone", "opioid"];
   let count = 0;
@@ -197,7 +164,7 @@ export async function fetchOverdoseCount(envelope: Envelope): Promise<number> {
 // --- Traffic Crashes ---
 
 export async function fetchTrafficCrashCount(envelope: Envelope): Promise<number> {
-  const records = await ckanFetchAll(RESOURCES.trafficCrashes, 10000);
+  const records = await ckanFetchAll(CKAN_RESOURCE_IDS.trafficCrashes, 10000);
 
   let count = 0;
   for (const row of records) {

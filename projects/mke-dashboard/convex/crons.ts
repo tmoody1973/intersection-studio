@@ -34,4 +34,13 @@ NEIGHBORHOODS.forEach((neighborhood, index) => {
   );
 });
 
+// Rebuild MAI address→taxkey cache weekly (Sundays at 3am UTC)
+// This avoids downloading 334K records during every neighborhood sync
+crons.cron(
+  "rebuild-mai-cache",
+  "0 3 * * 0", // Sunday 3am UTC
+  internal.maiCache.rebuildMaiCache,
+  {},
+);
+
 export default crons;

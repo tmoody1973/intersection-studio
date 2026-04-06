@@ -108,6 +108,8 @@ export interface PermitInvestmentAggregation {
  * Build address → taxkey lookup from the Master Address Index (MAI).
  * MAI has 334K records: HSE_NBR + DIR + STREET + STTYPE → TAXKEY.
  * We normalize addresses to match permit format.
+ *
+ * @deprecated Use fetchPermitInvestmentFromCache with MAI cache instead.
  */
 async function buildAddressToTaxkeyMap(): Promise<Map<string, string>> {
   const records = await ckanFetchAll(
@@ -183,6 +185,65 @@ export async function fetchPermitInvestment(
     }
 
     // Timeline: aggregate by year from Date Issued
+    const dateStr = String(r["Date Issued"] ?? r["Date Opened"] ?? "");
+    const year = dateStr.substring(0, 4);
+    if (year.length === 4 && parseInt(year) > 2000) {
+      permitsByYear[year] = (permitsByYear[year] ?? 0) + 1;
+      if (cost > 0) {
+        investmentByYear[year] = (investmentByYear[year] ?? 0) + cost;
+      }
+    }
+  }
+
+  return {
+    totalPermitInvestment: Math.round(totalPermitInvestment),
+    newConstructionCount,
+    permitCount,
+    investmentByYear,
+    permitsByYear,
+  };
+}
+
+/**
+ * Aggregate building permit investment using a pre-built MAI cache.
+ * If cachedMap is provided, uses it; otherwise falls back to downloading MAI.
+ */
+export async function fetchPermitInvestmentFromCache(
+  neighborhoodTaxkeys: Set<string>,
+  cachedMap?: Map<string, string>,
+): Promise<PermitInvestmentAggregation> {
+  // Use cache if available, otherwise fall back to full download
+  const addrToTaxkey = cachedMap ?? await buildAddressToTaxkeyMap();
+
+  const permits = await ckanFetchAll(
+    "828e9630-d7cb-42e4-960e-964eae916397",
+    20000,
+  );
+
+  let totalPermitInvestment = 0;
+  let newConstructionCount = 0;
+  let permitCount = 0;
+  const investmentByYear: Record<string, number> = {};
+  const permitsByYear: Record<string, number> = {};
+
+  for (const r of permits) {
+    const addr = normalizePermitAddress(String(r["Address"] ?? ""));
+    if (!addr) continue;
+
+    const taxkey = addrToTaxkey.get(addr);
+    if (!taxkey || !neighborhoodTaxkeys.has(taxkey)) continue;
+
+    permitCount++;
+    const cost = Number(r["Construction Total Cost"] ?? 0);
+    if (cost > 0) {
+      totalPermitInvestment += cost;
+    }
+
+    const permitType = String(r["Permit Type"] ?? "");
+    if (permitType.toLowerCase().includes("new construction")) {
+      newConstructionCount++;
+    }
+
     const dateStr = String(r["Date Issued"] ?? r["Date Opened"] ?? "");
     const year = dateStr.substring(0, 4);
     if (year.length === 4 && parseInt(year) > 2000) {
