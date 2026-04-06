@@ -167,6 +167,18 @@ export function DashboardShell() {
           />
         )}
 
+        {/* Data freshness indicator */}
+        {raw?.lastSyncAt && (
+          <div className="mb-4 flex items-center gap-2 text-[10px] text-limestone">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-positive" />
+            <span>
+              Data last updated: {new Date(raw.lastSyncAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}
+            </span>
+            <span className="text-limestone/50">|</span>
+            <span>Crime: MPD Monthly (monthly refresh) | Property: MPROP (daily) | Census: ACS 5-Year</span>
+          </div>
+        )}
+
         {/* Main layout: Map + Category Content */}
         <div className="flex flex-col gap-4 lg:flex-row">
           {/* Map */}
