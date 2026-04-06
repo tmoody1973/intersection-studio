@@ -1,4 +1,4 @@
-import { internalAction, internalMutation } from "./_generated/server";
+import { action, internalAction, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import {
@@ -666,6 +666,14 @@ export const syncHistory = internalAction({
         }
       }
     }
+  },
+});
+
+/** Public wrapper to trigger syncHistory from CLI */
+export const runSyncHistory = action({
+  args: { slug: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    await ctx.runAction(internal.sync.syncHistory, { slug: args.slug });
   },
 });
 

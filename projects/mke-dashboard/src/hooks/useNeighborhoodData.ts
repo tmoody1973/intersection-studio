@@ -223,7 +223,11 @@ export function useNeighborhoodData(slug: string) {
       add("daycares", "Daycare Centers", neighborhood.daycareCount, "centers", "community", "MPROP Layer 19");
 
     // --- Public Safety ---
-    const crimeCount = neighborhood.crimeTotal ?? neighborhood.part1CrimeCount;
+    // Use WIBR crimeTotal if available, fall back to ArcGIS part1CrimeCount
+    // WIBR sometimes returns 0 during data refresh cycles — use ArcGIS in that case
+    const crimeCount = (neighborhood.crimeTotal && neighborhood.crimeTotal > 0)
+      ? neighborhood.crimeTotal
+      : neighborhood.part1CrimeCount;
     if (crimeCount != null)
       add("crime_total", "Total Crimes", crimeCount, "incidents", "publicSafety", "WIBR Crime CSV (daily)");
 
