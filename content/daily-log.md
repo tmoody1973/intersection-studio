@@ -1,3 +1,29 @@
+# Intersection Studio — Daily Log
+
+---
+
+## 2026-04-07
+
+- No commits in the last 24 hours. Last active session was 2026-04-04.
+- **MKE Dashboard** is the only active project. Working prototype is built.
+- Dashboard covers 8 northside Milwaukee neighborhoods (Lindsay Heights, Amani, Harambee, Metcalfe Park, and 4 others)
+- 30+ metrics per neighborhood across 4 categories: Community, Public Safety, Quality of Life, Wellness
+- Data sources active: ArcGIS REST (MPROP, crime, foreclosures, vacant buildings), CKAN (311, property sales, liquor licenses), Census ACS
+- Taxkey join pattern implemented for property sales + liquor licenses (client-side filter against MPROP envelope, works within 2MB payload)
+- Three coordinate strategies in use: spatial envelope, ZIP code match, taxkey join
+- 7 toggleable map layers including HOLC redlining overlay
+- CopilotKit Generative UI wired — AI chat renders charts + tables on demand
+- next-intl i18n live in 4 languages: English, Spanish, Hmong, Arabic
+- LinkedIn launch post drafted and committed to `docs/mke-dashboard/linkedin-launch-post.md`
+- Dev diary entries #007–#009 written and committed
+- **Items needing attention:**
+  - No deployment yet — prototype runs locally only
+  - RAZE_STATUS and BI_VIOL fields deferred (require DNS partnership) — Phase 2
+  - Economic ETL committed but production sync behavior unverified
+  - LinkedIn post is ready to publish — needs Tarik's review and approval before posting
+
+---
+
 ## 2026-04-05
 
 **Project:** MKE Neighborhood Vitality Dashboard (mke-dashboard)
@@ -21,3 +47,5 @@
 - Sync performance: ~200 API calls per full cycle (25 per neighborhood × 8); optimize with citywide pre-fetch cache before adding on-demand sync
 - Housing tab decision pending (Tarik): economic data currently buried in Quality of Life alongside 311/vacancy — may warrant its own tab
 - i18n translation keys have no build-time type safety — new metrics silently fall back to English if keys not added to all 4 locale files
+
+---
