@@ -2,6 +2,22 @@
 
 ---
 
+## 2026-04-08
+
+- No commits in the last 24 hours — studio is in a rest/review cycle after an intensive 2-day build sprint
+- Last activity: 2026-04-04, dev diary #009 published ("The Numbers Have Names")
+- Active project: **MKE Dashboard** (Milwaukee Neighborhood Dashboard) — civic data, Next.js + Convex + Mapbox
+- Dashboard reached a significant milestone at end of last sprint: 15 data sources, 30+ metrics, 7 map layers, 4 languages (EN/ES/Hmong/Arabic), 8 neighborhoods
+- Phase 1 docs are comprehensive: PRD v2, technical architecture, data dictionary, UX/accessibility spec, component specs, API reference (v1–v3), style guide, economic data sourcing plan, missing data plan
+- Developer diary entries #004–#009 published (days 1–2 of build)
+- Open product decision flagged in diary #009: **Housing tab** should be split out from Quality of Life — data is there, needs IA decision from Tarik
+- Known tech debt: translation pipeline has no build-time type safety — missing translation keys fail silently
+- Known optimization target: citywide dataset downloads (WIBR, 311, sales, licenses) are fetched per-neighborhood; a shared pre-fetch step would cut sync time significantly
+- MKE Indicators ArcGIS web maps (37 layers — health, demographic, socioeconomic) remain untouched; adding 5 would make the Wellness tab production-grade
+- No social posts today — nothing new shipped since last sprint
+
+---
+
 ## 2026-04-07
 
 - No commits in the last 24 hours. Last active session was 2026-04-04.
