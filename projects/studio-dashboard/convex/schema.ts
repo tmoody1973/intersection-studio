@@ -32,6 +32,37 @@ import { v } from "convex/values";
  */
 export default defineSchema({
   /**
+   * Projects — the top-level container for work.
+   * Each project follows Bumwad phases:
+   *   research → schematic → design_dev → refinement → construction → complete
+   *
+   * gstack skills produce plans in Claude Code (your laptop).
+   * Plans get stored here. Hermes agents read them and create tasks.
+   *
+   *   /office-hours      → research phase    → designDoc
+   *   /plan-ceo-review   → schematic phase   → ceoPlan
+   *   /plan-eng-review   → design_dev phase  → engPlan
+   *   /plan-design-review → design_dev phase → designPlan
+   *   Hermes agents      → construction      → tasks under this project
+   */
+  projects: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    description: v.string(),
+    phase: v.string(), // research|schematic|design_dev|refinement|construction|complete
+    createdBy: v.string(), // tokenIdentifier
+    budgetCents: v.optional(v.number()),
+    spentCents: v.number(),
+    // Plan artifacts from gstack reviews (stored as markdown)
+    designDoc: v.optional(v.string()),   // from /office-hours
+    ceoPlan: v.optional(v.string()),     // from /plan-ceo-review
+    engPlan: v.optional(v.string()),     // from /plan-eng-review
+    designPlan: v.optional(v.string()),  // from /plan-design-review
+  })
+    .index("by_slug", ["slug"])
+    .index("by_phase", ["phase"]),
+
+  /**
    * Agent profiles — stable config data.
    * One row per agent (12 total). Seed on first deploy.
    */
@@ -78,6 +109,7 @@ export default defineSchema({
     description: v.string(),
     createdBy: v.string(), // tokenIdentifier or "agent:{agentId}"
     ownerAgentId: v.id("agents"),
+    projectId: v.optional(v.id("projects")), // tasks belong to a project
     status: v.string(), // queued|running|waiting_approval|completed|failed|cancelled
     priority: v.string(), // low|normal|high|urgent
     budgetCents: v.optional(v.number()),
@@ -91,6 +123,7 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_status_and_priority", ["status", "priority"])
     .index("by_ownerAgentId", ["ownerAgentId"])
+    .index("by_projectId", ["projectId"])
     .index("by_parentTaskId", ["parentTaskId"])
     .index("by_threadId", ["threadId"]),
 

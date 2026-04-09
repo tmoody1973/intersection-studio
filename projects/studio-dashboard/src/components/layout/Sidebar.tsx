@@ -1,6 +1,9 @@
 "use client";
 
 import { LayoutDashboard, Users, ListTodo, Settings } from "lucide-react";
+import { ProjectList } from "@/components/dashboard/ProjectList";
+import { useState } from "react";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 const NAV_ITEMS = [
   { label: "Overview", icon: LayoutDashboard, active: true },
@@ -9,7 +12,13 @@ const NAV_ITEMS = [
   { label: "Settings", icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ onProjectSelect }: { onProjectSelect?: (id: Id<"projects"> | null) => void }) {
+  const [selectedProject, setSelectedProject] = useState<Id<"projects"> | null>(null);
+
+  function handleProjectSelect(id: Id<"projects"> | null) {
+    setSelectedProject(id);
+    onProjectSelect?.(id);
+  }
   return (
     <aside
       style={{
@@ -71,6 +80,10 @@ export function Sidebar() {
           </button>
         ))}
       </nav>
+
+      <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-4)" }}>
+        <ProjectList selectedId={selectedProject} onSelect={handleProjectSelect} />
+      </div>
 
       <div style={{ marginTop: "auto", fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
         <kbd style={{ padding: "2px 6px", background: "var(--color-surface-2)", borderRadius: 4, border: "1px solid var(--color-border)" }}>
