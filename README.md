@@ -22,7 +22,8 @@ The studio uses AI agent teams to research, design, and build products. Tarik de
 
 | Project | Status | Description |
 |---------|--------|-------------|
-| [MKE Dashboard](projects/mke-dashboard/) | Scaffolding | Milwaukee Neighborhood Vitality Dashboard -- civic data + AI |
+| [Studio Dashboard](projects/studio-dashboard/) | Phase 1-4 complete | AI agent control room -- 12 Hermes agents, Convex + Clerk dashboard |
+| [MKE Dashboard](projects/mke-dashboard/) | Live | Milwaukee Neighborhood Vitality Dashboard -- civic data + AI |
 
 ## Methodology: Bumwad Coding
 
@@ -40,22 +41,24 @@ Never skip research. Never start coding before the design phases.
 
 ```
 intersection-studio/
-├── .claude/agents/          # AI agent team definitions
-│   ├── product-discovery.md # Market research, competitive analysis
-│   ├── strategist.md        # Pricing, positioning, business model
-│   ├── cto.md               # Technical architecture, stack decisions
-│   ├── creative-director.md # Visual direction, design systems
-│   ├── content-writer.md    # Case studies, newsletters, blog posts
-│   └── social-media.md      # LinkedIn, X, Instagram posts
-├── projects/                # Active product builds
-├── content/                 # Generated content
+├── .claude/agents/              # AI agent team definitions (6 Claude Code agents)
+├── projects/
+│   ├── studio-dashboard/        # Control Room -- 12 Hermes agents + dashboard
+│   │   ├── convex/              # 9-table schema, state machine, callbacks
+│   │   ├── src/                 # Next.js dashboard with Clerk auth
+│   │   ├── deploy/              # Fly.io Hermes deployment files
+│   │   └── test/                # 51 tests + mock Hermes server
+│   └── mke-dashboard/           # Milwaukee Neighborhood Vitality Dashboard
+│       ├── convex/              # Civic data ETL, sync crons
+│       └── src/                 # Next.js + Mapbox + CopilotKit
+├── content/                     # Generated content
 │   ├── case-studies/
 │   ├── newsletter/
 │   └── social/
-└── docs/                    # Research, PRDs, architecture docs
-    ├── developer-diary/     # Reflective build logs
-    ├── mke-dashboard/       # MKE Dashboard research + specs
-    └── brand/               # Studio brand guidelines
+└── docs/                        # Research, PRDs, architecture docs
+    ├── developer-diary/
+    ├── mke-dashboard/
+    └── brand/
 ```
 
 ## AI Agent Team
