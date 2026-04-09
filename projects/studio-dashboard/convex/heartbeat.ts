@@ -17,24 +17,46 @@ import { shouldRetry } from "./lib/stateMachine";
 export const checkAllAgents = internalAction({
   args: {},
   handler: async (ctx) => {
+    const hermesUrl = process.env.HERMES_API_URL;
+    const studioKey = process.env.STUDIO_API_KEY;
+
     // 1. Get all agents
     const agents = await ctx.runQuery(internal.heartbeat.listAgents);
 
-    // 2. Check each agent's health (sequential to avoid burst)
-    for (const agent of agents) {
-      try {
-        await ctx.runMutation(internal.heartbeat.updateAgentHealth, {
-          agentId: agent._id,
-          isOnline: true, // TODO: actual Fly.io health check when deployed
-        });
-      } catch (error) {
-        console.error(`Health check failed for ${agent.name}:`, error);
+    // 2. If Hermes isn't configured, mark all offline
+    if (!hermesUrl || !studioKey) {
+      for (const agent of agents) {
         await ctx.runMutation(internal.heartbeat.updateAgentHealth, {
           agentId: agent._id,
           isOnline: false,
-          errorMessage: error instanceof Error ? error.message : "Health check failed",
+          errorMessage: "HERMES_API_URL not configured",
         });
       }
+      return;
+    }
+
+    // 3. Fetch health from Fly.io routing proxy
+    let healthData: Record<string, string> = {};
+    try {
+      const res = await fetch(`${hermesUrl}/health`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        healthData = await res.json();
+      }
+    } catch (error) {
+      console.error("Health endpoint unreachable:", error);
+    }
+
+    // 4. Update each agent's status based on health response
+    for (const agent of agents) {
+      const flyStatus = healthData[agent.hermesProfileId];
+      const isOnline = flyStatus === "online";
+      await ctx.runMutation(internal.heartbeat.updateAgentHealth, {
+        agentId: agent._id,
+        isOnline,
+        errorMessage: flyStatus === "error" ? "Agent error" : undefined,
+      });
     }
 
     // 3. Check for timed-out tasks

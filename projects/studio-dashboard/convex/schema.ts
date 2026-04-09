@@ -185,4 +185,14 @@ export default defineSchema({
     email: v.optional(v.string()),
     role: v.string(), // "owner" | "viewer"
   }).index("by_tokenIdentifier", ["tokenIdentifier"]),
+
+  /**
+   * Cached OpenRouter model list.
+   * Refreshed daily. Dashboard reads from here, not from OpenRouter API.
+   */
+  modelCache: defineTable({
+    modelsJson: v.string(),
+    count: v.number(),
+    fetchedAt: v.number(),
+  }),
 });

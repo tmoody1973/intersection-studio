@@ -30,4 +30,13 @@ crons.cron(
   internal.heartbeat.resetDailySpend,
 );
 
+/**
+ * Refresh OpenRouter model list — daily at 6am UTC.
+ */
+crons.cron(
+  "refresh-openrouter-models",
+  "0 6 * * *",
+  internal.models.refreshFromOpenRouter,
+);
+
 export default crons;

@@ -5,13 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import { useState } from "react";
 import type { Id } from "../../../convex/_generated/dataModel";
 
-const AVAILABLE_MODELS = [
-  { label: "Claude Sonnet 4", value: "anthropic/claude-sonnet-4" },
-  { label: "Claude Haiku 4.5", value: "anthropic/claude-haiku-4.5" },
-  { label: "Llama 3.3 70B", value: "meta-llama/llama-3.3-70b-instruct" },
-  { label: "DeepSeek V3", value: "deepseek/deepseek-chat-v3-0324" },
-  { label: "Gemini 2.5 Flash", value: "google/gemini-2.5-flash-preview" },
-];
+// Models loaded dynamically from OpenRouter via Convex cache
 
 function StatusDot({ status }: { status: string }) {
   const color =
@@ -44,6 +38,7 @@ function StatusDot({ status }: { status: string }) {
 
 function AgentCard({
   agent,
+  availableModels,
 }: {
   agent: {
     _id: Id<"agents">;
@@ -53,6 +48,7 @@ function AgentCard({
     status: string;
     currentTaskCount: number;
   };
+  availableModels: Array<{ id: string; name: string }>;
 }) {
   const [showPicker, setShowPicker] = useState(false);
   const updateModel = useMutation(api.agents.updateModel);
@@ -124,11 +120,12 @@ function AgentCard({
             overflow: "hidden",
           }}
         >
-          {AVAILABLE_MODELS.map((m) => (
+          <div style={{ maxHeight: 300, overflowY: "auto" }}>
+          {availableModels.map((m) => (
             <button
-              key={m.value}
+              key={m.id}
               onClick={async () => {
-                await updateModel({ agentId: agent._id, model: m.value });
+                await updateModel({ agentId: agent._id, model: m.id });
                 setShowPicker(false);
               }}
               style={{
@@ -137,14 +134,15 @@ function AgentCard({
                 textAlign: "left",
                 padding: "0.5rem 0.75rem",
                 fontSize: "var(--text-xs)",
-                background: m.value === agent.model ? "rgba(79, 152, 163, 0.12)" : "transparent",
-                color: m.value === agent.model ? "var(--color-primary)" : "var(--color-text)",
+                background: m.id === agent.model ? "rgba(79, 152, 163, 0.12)" : "transparent",
+                color: m.id === agent.model ? "var(--color-primary)" : "var(--color-text)",
                 borderBottom: "1px solid var(--color-border)",
               }}
             >
-              {m.label}
+              {m.name}
             </button>
           ))}
+          </div>
         </div>
       )}
     </div>
@@ -153,6 +151,7 @@ function AgentCard({
 
 export function OrgChart() {
   const agents = useQuery(api.agents.listWithStatus);
+  const models = useQuery(api.models.listCached);
 
   if (!agents) {
     return (
@@ -193,7 +192,7 @@ export function OrgChart() {
         {/* CEO row */}
         {ceo && (
           <div style={{ display: "grid", gridTemplateColumns: "minmax(200px, 300px)", justifyContent: "center" }}>
-            <AgentCard agent={ceo} />
+            <AgentCard agent={ceo} availableModels={models ?? []} />
           </div>
         )}
 
@@ -206,7 +205,7 @@ export function OrgChart() {
           }}
         >
           {leads.map((agent) => (
-            <AgentCard key={agent._id} agent={agent} />
+            <AgentCard key={agent._id} agent={agent} availableModels={models ?? []} />
           ))}
         </div>
 
@@ -219,7 +218,7 @@ export function OrgChart() {
           }}
         >
           {ics.map((agent) => (
-            <AgentCard key={agent._id} agent={agent} />
+            <AgentCard key={agent._id} agent={agent} availableModels={models ?? []} />
           ))}
         </div>
       </div>
