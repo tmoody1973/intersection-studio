@@ -1,0 +1,43 @@
+node_modules/
+.next/
+.env.local
+tsconfig.tsbuildinfo
+next-env.d.ts
+
+# Clerk
+/.clerk/
+
+# Convex generated
+convex/_generated/
+
+# Convex AI skills (auto-generated for various editors)
+.adal/
+.agents/skills/
+.augment/
+.claude/skills/convex-*
+.codebuddy/
+.commandcode/
+.continue/
+.crush/
+.factory/
+.goose/
+.iflow/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.mux/
+.neovate/
+.openhands/
+.pi/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.trae/
+.vibe/
+.windsurf/
+.zencoder/
+skills/
+skills-lock.json
