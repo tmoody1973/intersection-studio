@@ -4,91 +4,194 @@ set -e
 echo "=== Intersection Studio Hermes Deploy ==="
 echo "Starting at $(date -u)"
 
-# Hermes profiles ALWAYS go to ~/.hermes/profiles/ (hardcoded in source).
-# HERMES_HOME doesn't change profile location (issue #892).
-# Solution: symlink ~/.hermes to persistent volume so profiles survive restarts.
-PERSISTENT_HERMES="/opt/data/hermes"
-mkdir -p "$PERSISTENT_HERMES"
+# --- Agent definitions ---
+# Format: "profile-id:port:model:toolsets"
+# Toolsets: web,terminal,file,browser,memory,delegation,skills,vision,todo,cronjob
+AGENTS=(
+  "ceo:8650:anthropic/claude-sonnet-4:web,memory,delegation,skills,todo"
+  "creative-director:8651:anthropic/claude-sonnet-4:web,memory,delegation,skills,vision"
+  "engineering-lead:8652:anthropic/claude-sonnet-4:web,terminal,file,memory,delegation,skills"
+  "content-lead:8653:anthropic/claude-sonnet-4:web,memory,delegation,skills"
+  "project-manager:8654:anthropic/claude-sonnet-4:web,memory,delegation,skills,todo,cronjob"
+  "visual-designer:8655:anthropic/claude-sonnet-4:web,memory,skills,vision"
+  "frontend-dev:8656:meta-llama/llama-3.3-70b-instruct:terminal,file,memory,skills"
+  "backend-dev:8657:meta-llama/llama-3.3-70b-instruct:terminal,file,memory,skills"
+  "content-writer:8658:meta-llama/llama-3.3-70b-instruct:web,memory,skills"
+  "social-media:8659:meta-llama/llama-3.3-70b-instruct:web,memory,skills"
+  "qa-reviewer:8660:meta-llama/llama-3.3-70b-instruct:web,terminal,browser,memory,skills"
+  "data-analyst:8661:meta-llama/llama-3.3-70b-instruct:web,terminal,memory,skills"
+)
 
-if [ -L "$HOME/.hermes" ]; then
-  echo "Symlink already exists: $HOME/.hermes -> $PERSISTENT_HERMES"
-elif [ -d "$HOME/.hermes" ]; then
-  echo "Moving existing ~/.hermes to persistent volume..."
-  cp -a "$HOME/.hermes/." "$PERSISTENT_HERMES/"
-  rm -rf "$HOME/.hermes"
-  ln -s "$PERSISTENT_HERMES" "$HOME/.hermes"
-else
-  ln -s "$PERSISTENT_HERMES" "$HOME/.hermes"
-  echo "Created symlink: $HOME/.hermes -> $PERSISTENT_HERMES"
-fi
+# --- Persistent volume setup ---
+# The official Hermes Docker image uses /opt/data as HERMES_HOME.
+# Our Fly.io volume is mounted at /opt/data.
+# Profiles go to /opt/data/profiles/<name>/ automatically.
+# No symlinks needed — this is how Hermes Docker works by default.
+echo "Data dir: /opt/data (Fly.io persistent volume)"
+echo "Profiles dir: /opt/data/profiles/"
+ls /opt/data/profiles/ 2>/dev/null || echo "  (empty — first boot)"
 
-PROFILE_DIR="$HOME/.hermes/profiles/ceo"
-SETUP_MARKER="/opt/data/.setup-complete"
+SETUP_MARKER="/opt/data/.setup-complete-v2"
 
-# If marker exists but profile doesn't, force re-setup
-if [ -f "$SETUP_MARKER" ] && [ ! -d "$PROFILE_DIR" ]; then
-  echo "Profile directory missing despite setup marker. Re-running setup..."
+# If marker exists but ANY profile is missing, force re-setup
+_MISSING=0
+for agent_def in "${AGENTS[@]}"; do
+  IFS=':' read -r profile port model toolsets <<< "$agent_def"
+  if [ ! -d "/opt/data/profiles/$profile" ]; then
+    echo "Profile $profile missing despite setup marker."
+    _MISSING=1
+  fi
+done
+if [ -f "$SETUP_MARKER" ] && [ "$_MISSING" -eq 1 ]; then
+  echo "Re-running setup due to missing profiles..."
   rm -f "$SETUP_MARKER"
 fi
 
-# First boot: create profile and write configs
+# --- First boot: create all profiles ---
 if [ ! -f "$SETUP_MARKER" ]; then
-  echo "First boot detected. Setting up profiles..."
+  echo "First boot detected. Setting up ${#AGENTS[@]} agent profiles..."
 
-  echo "Creating CEO profile..."
-  hermes profile create ceo 2>/dev/null || echo "Profile already exists, continuing..."
-  sleep 1
+  for agent_def in "${AGENTS[@]}"; do
+    IFS=':' read -r profile port model toolsets <<< "$agent_def"
+    PROFILE_DIR="/opt/data/profiles/$profile"
 
-  # Write .env — use placeholder + sed to avoid bash expansion of special chars
-  echo "Writing CEO .env to ${PROFILE_DIR}/.env"
-  cat > "${PROFILE_DIR}/.env" << 'ENVEOF'
-OPENROUTER_API_KEY=__OPENROUTER_KEY__
+    echo "Creating profile: $profile (port $port, model $model, tools: $toolsets)"
+    hermes profile create "$profile" 2>/dev/null || echo "  Profile $profile already exists, continuing..."
+    sleep 0.5
+
+    # Write .env
+    cat > "${PROFILE_DIR}/.env" << ENVEOF
+OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
 API_SERVER_ENABLED=true
-API_SERVER_PORT=8650
+API_SERVER_PORT=${port}
 API_SERVER_HOST=0.0.0.0
-API_SERVER_KEY=__STUDIO_KEY__
+API_SERVER_KEY=${STUDIO_API_KEY}
+CONVEX_SITE_URL=${CONVEX_SITE_URL}
+HERMES_CALLBACK_SECRET=${HERMES_CALLBACK_SECRET}
+GATEWAY_ALLOW_ALL_USERS=true
 ENVEOF
 
-  sed -i "s|__OPENROUTER_KEY__|${OPENROUTER_API_KEY}|g" "${PROFILE_DIR}/.env"
-  sed -i "s|__STUDIO_KEY__|${STUDIO_API_KEY}|g" "${PROFILE_DIR}/.env"
+    # Build config.yaml — model + terminal only.
+    # Toolsets are configured in the GLOBAL config.yaml (gateway reads that, not profile configs)
+    {
+      echo "model:"
+      echo "  provider: openrouter"
+      echo "  model: ${model}"
+      echo "terminal:"
+      echo "  backend: local"
+      echo "compression:"
+      echo "  enabled: true"
+      echo "  threshold: 0.50"
+    } > "${PROFILE_DIR}/config.yaml"
 
-  echo "Writing CEO config.yaml"
-  cat > "${PROFILE_DIR}/config.yaml" << 'EOF'
-model:
-  provider: openrouter
-  model: anthropic/claude-sonnet-4
-terminal:
-  backend: local
-compression:
-  enabled: true
-  threshold: 0.50
-EOF
-
-  echo "Copying CEO SOUL.md"
-  cp /opt/studio/souls/ceo.md "${PROFILE_DIR}/SOUL.md"
+    # Copy SOUL.md
+    SOUL_FILE="/opt/studio/souls/${profile}.md"
+    if [ -f "$SOUL_FILE" ]; then
+      cp "$SOUL_FILE" "${PROFILE_DIR}/SOUL.md"
+      echo "  Copied SOUL.md for $profile"
+    else
+      echo "  WARNING: No soul file found at $SOUL_FILE"
+    fi
+  done
 
   touch "$SETUP_MARKER"
-  echo "Setup complete."
+  echo "Setup complete for ${#AGENTS[@]} agents."
 else
   echo "Setup already complete, skipping profile creation."
 fi
 
-# Verify profile exists before starting
-if [ ! -d "$PROFILE_DIR" ]; then
-  echo "ERROR: Profile directory $PROFILE_DIR does not exist after setup!"
-  ls -la "$HOME/.hermes/" 2>/dev/null || echo "~/.hermes does not exist"
-  ls -la "$PERSISTENT_HERMES/" 2>/dev/null || echo "Persistent dir empty"
+# Always install/update plugin into EVERY profile directory
+# hermes -p <name> sets HERMES_HOME to the profile dir, so plugins
+# must be inside each profile for the gateway to find them.
+echo "Installing studio-dashboard plugin into all profiles..."
+for agent_def in "${AGENTS[@]}"; do
+  IFS=':' read -r profile port model toolsets <<< "$agent_def"
+  PROFILE_PLUGIN_DIR="/opt/data/profiles/$profile/plugins"
+  mkdir -p "$PROFILE_PLUGIN_DIR"
+  rm -rf "$PROFILE_PLUGIN_DIR/studio-dashboard"
+  cp -r /opt/studio/plugins/studio-dashboard "$PROFILE_PLUGIN_DIR/"
+done
+echo "  Plugin installed in ${#AGENTS[@]} profiles"
+
+# Write config.yaml into EVERY profile directory
+# hermes -p <name> reads config from the profile's HERMES_HOME
+echo "Writing config.yaml into all profiles..."
+for agent_def in "${AGENTS[@]}"; do
+  IFS=':' read -r profile port model toolsets <<< "$agent_def"
+  PROFILE_DIR="/opt/data/profiles/$profile"
+
+  {
+    echo "model:"
+    echo "  provider: openrouter"
+    echo "  model: ${model}"
+    echo "terminal:"
+    echo "  backend: local"
+    echo "compression:"
+    echo "  enabled: true"
+    echo "  threshold: 0.50"
+    echo "platform_toolsets:"
+    echo "  api_server:"
+    IFS=',' read -ra TOOL_ARRAY <<< "$toolsets"
+    for tool in "${TOOL_ARRAY[@]}"; do
+      echo "    - ${tool}"
+    done
+    echo "    - studio"
+    echo "skills:"
+    echo "  external_dirs:"
+    echo "    - /opt/studio/skills"
+  } > "${PROFILE_DIR}/config.yaml"
+done
+echo "  Config written for ${#AGENTS[@]} profiles"
+
+# --- Verify profiles ---
+echo ""
+echo "Verifying profiles..."
+MISSING=0
+for agent_def in "${AGENTS[@]}"; do
+  IFS=':' read -r profile port model <<< "$agent_def"
+  if [ ! -d "/opt/data/profiles/$profile" ]; then
+    echo "  ERROR: Missing profile $profile"
+    MISSING=$((MISSING + 1))
+  fi
+done
+
+if [ "$MISSING" -gt 0 ]; then
+  echo "ERROR: $MISSING profiles missing. Listing available:"
+  ls -la "/opt/data/profiles/" 2>/dev/null || echo "  No profiles directory"
   exit 1
 fi
+echo "All ${#AGENTS[@]} profiles verified."
 
-echo "Profile verified at $PROFILE_DIR"
-echo "Contents:"
-ls -la "$PROFILE_DIR/"
-
-# Start the routing proxy
+# --- Start routing proxy ---
+echo ""
 echo "Starting routing proxy on port 3000..."
 node /opt/studio/scripts/proxy.mjs &
+PROXY_PID=$!
+echo "Proxy started (PID $PROXY_PID)"
 
-# Start the CEO gateway (blocking — keeps container alive)
-echo "Starting CEO gateway on port 8650..."
+# --- Start agent gateways ---
+# Start all non-CEO agents in background
+echo ""
+echo "Starting agent gateways..."
+PIDS=()
+
+for agent_def in "${AGENTS[@]}"; do
+  IFS=':' read -r profile port model <<< "$agent_def"
+
+  # Skip CEO — we start it last as the foreground process
+  if [ "$profile" = "ceo" ]; then
+    continue
+  fi
+
+  echo "  Starting $profile on port $port..."
+  hermes -p "$profile" gateway run &
+  PIDS+=($!)
+  sleep 1  # stagger startup to avoid resource contention
+done
+
+echo ""
+echo "Started ${#PIDS[@]} background gateways."
+echo "Starting CEO gateway on port 8650 (foreground — keeps container alive)..."
+
+# CEO runs in foreground — container stays alive as long as this runs
 hermes -p ceo gateway run

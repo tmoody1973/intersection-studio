@@ -97,7 +97,7 @@ const server = createServer(async (req, res) => {
           "Content-Type": "application/json",
         },
         body: req.method !== "GET" ? body : undefined,
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(300000), // 5 min — agents use tools (web search, etc.)
       });
 
       // Forward response
