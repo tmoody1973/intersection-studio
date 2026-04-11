@@ -73,6 +73,7 @@ export default defineSchema({
     role: v.string(), // "strategic" | "execution"
     reportsTo: v.optional(v.id("agents")),
     model: v.string(), // OpenRouter model string, e.g. "anthropic/claude-sonnet-4-20250514"
+    soulMarkdown: v.optional(v.string()), // full SOUL.md content, editable from dashboard
     allowedTools: v.array(v.string()),
     delegationPermissions: v.array(v.id("agents")),
     maxDailyBudgetCents: v.number(),
@@ -220,6 +221,21 @@ export default defineSchema({
   }).index("by_tokenIdentifier", ["tokenIdentifier"]),
 
   /**
+   * Project sources — NotebookLM-style reference library.
+   * Text notes, uploaded files, and URLs that agents pull from.
+   */
+  projectSources: defineTable({
+    projectId: v.id("projects"),
+    type: v.string(), // "text" | "file" | "url"
+    name: v.string(),
+    content: v.optional(v.string()),          // for text type
+    storageId: v.optional(v.id("_storage")),  // for file type
+    url: v.optional(v.string()),              // for url type
+    mimeType: v.optional(v.string()),
+  })
+    .index("by_projectId", ["projectId"]),
+
+  /**
    * Cached OpenRouter model list.
    * Refreshed daily. Dashboard reads from here, not from OpenRouter API.
    */
@@ -228,4 +244,19 @@ export default defineSchema({
     count: v.number(),
     fetchedAt: v.number(),
   }),
+
+  /**
+   * Chat messages — direct conversations with agents.
+   * Like Claude Code sessions but structured and project-scoped.
+   * Conversations are grouped by conversationId.
+   */
+  chatMessages: defineTable({
+    conversationId: v.string(),
+    agentId: v.id("agents"),
+    projectId: v.optional(v.id("projects")),
+    role: v.string(), // "user" | "assistant"
+    content: v.string(),
+  })
+    .index("by_conversationId", ["conversationId"])
+    .index("by_agentId", ["agentId"]),
 });
