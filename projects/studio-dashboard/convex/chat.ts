@@ -24,14 +24,56 @@ export const sendMessage = action({
     }) as { name: string; hermesProfileId: string; soulMarkdown?: string } | null;
     if (!agent) throw new Error("Agent not found");
 
-    // Get project context if scoped to a project
+    // Get ALL projects so the agent knows what the studio is working on
+    const allProjects = await ctx.runQuery(api.chat.getAllProjects) as Array<{
+      _id: string; name: string; phase: string; description: string;
+      taskCounts: { total: number; completed: number; running: number };
+    }>;
+
     let projectContext = "";
+
+    if (allProjects.length > 0) {
+      const projectList = allProjects.map((p) =>
+        `- "${p.name}" (${p.phase} phase): ${p.description.slice(0, 200)}${p.taskCounts.total > 0 ? ` [${p.taskCounts.completed}/${p.taskCounts.total} tasks done]` : ""}`
+      ).join("\n");
+      projectContext += `\n\n## Active Studio Projects\n${projectList}`;
+    }
+
+    // If scoped to a specific project, add detailed context
     if (args.projectId) {
-      const project = await ctx.runQuery(api.chat.getProjectContext, {
+      const projectDetail = await ctx.runQuery(api.chat.getFullProjectContext, {
         projectId: args.projectId,
-      }) as { name: string; phase: string; description: string } | null;
-      if (project) {
-        projectContext = `\n\nProject context: "${project.name}" (${project.phase} phase)\n${project.description}`;
+      }) as {
+        name: string; phase: string; description: string;
+        sources: Array<{ name: string; type: string; content?: string; url?: string }>;
+        recentThread: Array<{ type: string; content: string; agentName?: string }>;
+        designDoc?: string; ceoPlan?: string; engPlan?: string;
+      } | null;
+
+      if (projectDetail) {
+        projectContext += `\n\n## Current Project: ${projectDetail.name} (${projectDetail.phase} phase)`;
+        projectContext += `\nDescription: ${projectDetail.description}`;
+
+        if (projectDetail.sources.length > 0) {
+          projectContext += `\n\n### Project Sources`;
+          for (const s of projectDetail.sources) {
+            projectContext += `\n- [${s.type}] ${s.name}: ${(s.content || s.url || "").slice(0, 500)}`;
+          }
+        }
+
+        if (projectDetail.recentThread.length > 0) {
+          projectContext += `\n\n### Recent Decisions & Findings`;
+          for (const t of projectDetail.recentThread.slice(-15)) {
+            projectContext += `\n- [${t.type}] ${t.agentName ? t.agentName + ": " : ""}${t.content.slice(0, 300)}`;
+          }
+        }
+
+        if (projectDetail.designDoc) {
+          projectContext += `\n\n### Design Doc Summary\n${projectDetail.designDoc.slice(0, 1000)}`;
+        }
+        if (projectDetail.ceoPlan) {
+          projectContext += `\n\n### CEO Plan Summary\n${projectDetail.ceoPlan.slice(0, 1000)}`;
+        }
       }
     }
 
@@ -136,6 +178,94 @@ export const getProjectContext = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
     return ctx.db.get(args.projectId);
+  },
+});
+
+/**
+ * Get all projects with task counts for the agent's awareness.
+ */
+export const getAllProjects = query({
+  args: {},
+  handler: async (ctx) => {
+    const projects = await ctx.db.query("projects").order("desc").collect();
+    const results = [];
+    for (const p of projects) {
+      const tasks = await ctx.db
+        .query("tasks")
+        .withIndex("by_projectId", (q) => q.eq("projectId", p._id))
+        .collect();
+      results.push({
+        ...p,
+        taskCounts: {
+          total: tasks.length,
+          completed: tasks.filter((t) => t.status === "completed").length,
+          running: tasks.filter((t) => t.status === "running" || t.status === "queued").length,
+        },
+      });
+    }
+    return results;
+  },
+});
+
+/**
+ * Get full project context: sources, thread, plans.
+ */
+export const getFullProjectContext = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) return null;
+
+    // Get sources
+    const sources = await ctx.db
+      .query("projectSources")
+      .withIndex("by_projectId", (q) => q.eq("projectId", project._id))
+      .collect();
+
+    // Get thread entries from tasks in this project
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_projectId", (q) => q.eq("projectId", project._id))
+      .collect();
+
+    const threadIds = new Set(tasks.map((t) => t.threadId));
+    // Also include chat threads
+    threadIds.add(`chat-${project._id}`);
+
+    const allEntries = [];
+    for (const tid of threadIds) {
+      const entries = await ctx.db
+        .query("threadEntries")
+        .withIndex("by_threadId", (q) => q.eq("threadId", tid))
+        .order("desc")
+        .take(15);
+      for (const e of entries) {
+        let agentName: string | undefined;
+        if (e.agentId) {
+          const agent = await ctx.db.get(e.agentId);
+          agentName = agent?.name;
+        }
+        allEntries.push({ ...e, agentName });
+      }
+    }
+
+    return {
+      name: project.name,
+      phase: project.phase,
+      description: project.description,
+      sources: sources.map((s) => ({
+        name: s.name,
+        type: s.type,
+        content: s.content,
+        url: s.url,
+      })),
+      recentThread: allEntries
+        .sort((a, b) => a._creationTime - b._creationTime)
+        .slice(-15),
+      designDoc: project.designDoc,
+      ceoPlan: project.ceoPlan,
+      engPlan: project.engPlan,
+    };
   },
 });
 
