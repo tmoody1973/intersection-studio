@@ -11,6 +11,74 @@ import { validateTransition } from "./lib/stateMachine";
 import { detectCircularDelegation } from "./lib/delegation";
 
 /**
+ * Create a goal — describe what you want, CEO agent routes it automatically.
+ * This is the Paperclip-style delegation: you state the goal, the system figures out who does it.
+ * The CEO receives the goal, breaks it down, and delegates to the right agents.
+ */
+export const createGoal = mutation({
+  args: {
+    title: v.string(),
+    description: v.string(),
+    projectId: v.optional(v.id("projects")),
+    priority: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tokenIdentifier", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!user || user.role !== "owner") throw new Error("Only owners can create goals");
+
+    // Find the CEO agent
+    const ceo = await ctx.db
+      .query("agents")
+      .withIndex("by_hermesProfileId", (q) => q.eq("hermesProfileId", "ceo"))
+      .unique();
+    if (!ceo) throw new Error("CEO agent not found");
+
+    const threadId = crypto.randomUUID();
+
+    const taskId = await ctx.db.insert("tasks", {
+      title: args.title,
+      description: args.description,
+      createdBy: identity.tokenIdentifier,
+      ownerAgentId: ceo._id,
+      projectId: args.projectId,
+      status: "queued",
+      priority: args.priority ?? "normal",
+      spentCents: 0,
+      threadId,
+      retryCount: 0,
+    });
+
+    await ctx.db.insert("events", {
+      taskId,
+      agentId: ceo._id,
+      type: "goal.created",
+      payload: JSON.stringify({
+        title: args.title,
+        priority: args.priority ?? "normal",
+      }),
+    });
+
+    await ctx.db.insert("threadEntries", {
+      threadId,
+      type: "constraint",
+      content: `Goal: ${args.title}\n\n${args.description}\n\nRouted to CEO for delegation.`,
+    });
+
+    await ctx.scheduler.runAfter(0, internal.tasks.dispatchTask, { taskId });
+
+    return taskId;
+  },
+});
+
+/**
  * Create a new task. Public mutation — requires Clerk auth.
  * Only "owner" role can create tasks (RBAC).
  */
@@ -19,6 +87,7 @@ export const createTask = mutation({
     title: v.string(),
     description: v.string(),
     ownerAgentId: v.id("agents"),
+    projectId: v.optional(v.id("projects")),
     priority: v.optional(v.string()),
     budgetCents: v.optional(v.number()),
     parentTaskId: v.optional(v.id("tasks")),
@@ -71,6 +140,7 @@ export const createTask = mutation({
       description: args.description,
       createdBy: identity.tokenIdentifier,
       ownerAgentId: args.ownerAgentId,
+      projectId: args.projectId,
       status: "queued",
       priority: args.priority ?? "normal",
       budgetCents: args.budgetCents,
@@ -159,10 +229,9 @@ export const dispatchTask = internalAction({
     // Build the Hermes API request
     const hermesUrl = process.env.HERMES_API_URL;
     const studioApiKey = process.env.STUDIO_API_KEY;
-    const callbackUrl = process.env.NEXT_PUBLIC_CONVEX_SITE_URL;
 
-    if (!hermesUrl || !studioApiKey || !callbackUrl) {
-      console.error("Missing env vars: HERMES_API_URL, STUDIO_API_KEY, or NEXT_PUBLIC_CONVEX_SITE_URL");
+    if (!hermesUrl || !studioApiKey) {
+      console.error("Missing env vars: HERMES_API_URL or STUDIO_API_KEY");
       await ctx.runMutation(internal.tasks.markTaskFailed, {
         taskId: args.taskId,
         taskRunId,
@@ -172,26 +241,37 @@ export const dispatchTask = internalAction({
       return;
     }
 
-    // Call Hermes API
-    const systemPrompt = [
-      task.agentSoul ?? `You are ${task.agentName}, an agent at Intersection Studio.`,
+    // Build instructions with STUDIO_CONTEXT for the plugin's pre_llm_call hook.
+    // The plugin extracts this metadata to fetch project context from Convex.
+    const studioContext = JSON.stringify({
+      taskRunId: taskRunId,
+      projectId: task.projectId,
+      threadId: task.threadId,
+    });
+
+    const instructions = [
+      `<!-- STUDIO_CONTEXT: ${studioContext} -->`,
       "",
+      // Hermes loads SOUL.md natively. We add task-specific context here.
       "## Thread Context (previous decisions and findings)",
       threadContext,
       "",
-      "## Your Task",
-      task.description,
-      "",
       "## Response Format",
-      "Respond with a JSON object:",
+      "When done, respond with a JSON object:",
       '{ "status": "completed" | "needs_approval" | "failed",',
       '  "result": "your output text",',
       '  "approvalRequest": { "action": "what needs approval", "reason": "why" } }',
+      "",
+      "You can also use the report_progress tool to send intermediate findings,",
+      "and request_approval tool when you need owner sign-off on a decision.",
     ].join("\n");
 
+    // Use /v1/responses (stateful API) with named conversations matching threadId.
+    // This gives us: server-side history, multi-turn tool execution, and
+    // the agent's full toolset (web, terminal, file, memory, delegation, skills).
     try {
       const response = await fetch(
-        `${hermesUrl}/v1/chat/completions`,
+        `${hermesUrl}/v1/responses`,
         {
           method: "POST",
           headers: {
@@ -201,12 +281,12 @@ export const dispatchTask = internalAction({
           },
           body: JSON.stringify({
             model: "hermes-agent",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: task.description },
-            ],
+            input: task.description,
+            instructions,
+            conversation: task.threadId,
+            store: true,
           }),
-          signal: AbortSignal.timeout(30_000),
+          signal: AbortSignal.timeout(120_000), // longer timeout for tool-augmented tasks
         },
       );
 
@@ -227,20 +307,27 @@ export const dispatchTask = internalAction({
         return;
       }
 
-      // For fire-and-callback: Hermes will call back /hermes-callback
-      // when the task completes. The response here is just the initial ack.
-      // For simple tasks that complete synchronously, we process the
-      // response directly.
+      // /v1/responses returns a stateful response with output array.
+      // The output contains tool calls, tool results, and the final message.
       const result = await response.json();
 
-      if (result.choices?.[0]?.message?.content) {
-        // Synchronous completion — process inline
-        const content = result.choices[0].message.content;
+      // Extract the final text output from the response
+      const outputItems = result.output ?? [];
+      const messageItem = outputItems.find(
+        (item: any) => item.type === "message" && item.role === "assistant",
+      );
+      const content = messageItem?.content?.[0]?.text
+        ?? messageItem?.content
+        ?? result.output_text
+        ?? "";
 
+      if (content) {
         // Try to parse as structured response
         let parsed;
         try {
-          parsed = JSON.parse(content);
+          // Look for JSON in the content (may be wrapped in markdown code block)
+          const jsonMatch = content.match(/\{[\s\S]*"status"[\s\S]*\}/);
+          parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { status: "completed", result: content };
         } catch {
           parsed = { status: "completed", result: content };
         }
@@ -251,15 +338,15 @@ export const dispatchTask = internalAction({
           result: parsed.result ?? content,
           costCents: result.usage
             ? Math.ceil(
-                (result.usage.prompt_tokens * 0.003 +
-                  result.usage.completion_tokens * 0.015) /
+                (result.usage.input_tokens * 0.003 +
+                  result.usage.output_tokens * 0.015) /
                   1000,
               )
             : undefined,
           tokenUsage: result.usage
             ? JSON.stringify({
-                input: result.usage.prompt_tokens,
-                output: result.usage.completion_tokens,
+                input: result.usage.input_tokens,
+                output: result.usage.output_tokens,
               })
             : undefined,
           approvalReason: parsed.approvalRequest?.reason,
@@ -416,6 +503,283 @@ export const listTasks = query({
 export const getTask = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.taskId);
+    const task = await ctx.db.get(args.taskId);
+    if (!task) return null;
+
+    const agent = await ctx.db.get(task.ownerAgentId);
+    const agentStatusDoc = await ctx.db
+      .query("agentStatus")
+      .withIndex("by_agentId", (q) => q.eq("agentId", task.ownerAgentId))
+      .unique();
+
+    const runs = await ctx.db
+      .query("taskRuns")
+      .withIndex("by_taskId", (q) => q.eq("taskId", args.taskId))
+      .order("desc")
+      .take(10);
+
+    const threadEntries = await ctx.db
+      .query("threadEntries")
+      .withIndex("by_threadId", (q) => q.eq("threadId", task.threadId))
+      .order("asc")
+      .take(50);
+
+    return {
+      ...task,
+      agentName: agent?.name ?? "Unknown",
+      agentStatus: agentStatusDoc?.status ?? "offline",
+      runs,
+      threadEntries,
+    };
+  },
+});
+
+/**
+ * List tasks for the Kanban board.
+ * Groups by status, with agent name joined. Supports project filtering.
+ */
+export const listForKanban = query({
+  args: {
+    projectId: v.optional(v.id("projects")),
+  },
+  handler: async (ctx, args) => {
+    let tasks;
+    if (args.projectId) {
+      tasks = await ctx.db
+        .query("tasks")
+        .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+        .order("desc")
+        .take(200);
+    } else {
+      tasks = await ctx.db.query("tasks").order("desc").take(200);
+    }
+
+    // Filter out archived tasks
+    const activeTasks = tasks.filter((t) => t.status !== "archived");
+
+    const enriched = [];
+    for (const task of activeTasks) {
+      const agent = await ctx.db.get(task.ownerAgentId);
+      const agentStatusDoc = await ctx.db
+        .query("agentStatus")
+        .withIndex("by_agentId", (q) => q.eq("agentId", task.ownerAgentId))
+        .unique();
+
+      // Get latest run for cost/timing
+      const latestRun = await ctx.db
+        .query("taskRuns")
+        .withIndex("by_taskId", (q) => q.eq("taskId", task._id))
+        .order("desc")
+        .first();
+
+      enriched.push({
+        ...task,
+        agentName: agent?.name ?? "Unknown",
+        agentStatus: agentStatusDoc?.status ?? "offline",
+        costCents: latestRun?.costCents ?? 0,
+        startedAt: latestRun?.startedAt,
+        finishedAt: latestRun?.finishedAt,
+      });
+    }
+
+    return enriched;
+  },
+});
+
+/**
+ * Cancel a task. Owner-only.
+ */
+export const cancelTask = mutation({
+  args: { taskId: v.id("tasks") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tokenIdentifier", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!user || user.role !== "owner") {
+      throw new Error("Only owners can cancel tasks");
+    }
+
+    const task = await ctx.db.get(args.taskId);
+    if (!task) throw new Error("Task not found");
+
+    const transition = validateTransition(task.status, "cancelled", task.retryCount);
+    if (!transition.valid) {
+      throw new Error(`Cannot cancel: ${transition.reason}`);
+    }
+
+    await ctx.db.patch(args.taskId, { status: "cancelled" });
+
+    await ctx.db.insert("events", {
+      taskId: args.taskId,
+      agentId: task.ownerAgentId,
+      type: "task.cancelled",
+      payload: JSON.stringify({ cancelledBy: identity.tokenIdentifier }),
+    });
+  },
+});
+
+/**
+ * Archive a completed/failed/cancelled task. Owner-only.
+ * Archived tasks are hidden from the Kanban but preserved in the database.
+ */
+export const archiveTask = mutation({
+  args: { taskId: v.id("tasks") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tokenIdentifier", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!user || user.role !== "owner") {
+      throw new Error("Only owners can archive tasks");
+    }
+
+    const task = await ctx.db.get(args.taskId);
+    if (!task) throw new Error("Task not found");
+
+    if (!["completed", "failed", "cancelled"].includes(task.status)) {
+      throw new Error("Can only archive completed, failed, or cancelled tasks");
+    }
+
+    await ctx.db.patch(args.taskId, { status: "archived" });
+
+    await ctx.db.insert("events", {
+      taskId: args.taskId,
+      agentId: task.ownerAgentId,
+      type: "task.archived",
+      payload: JSON.stringify({ archivedBy: identity.tokenIdentifier }),
+    });
+  },
+});
+
+/**
+ * Delete a task and its related data. Owner-only.
+ * Permanently removes: task, task runs, delegations, and related events.
+ * Thread entries are preserved (they're part of project memory).
+ */
+export const deleteTask = mutation({
+  args: { taskId: v.id("tasks") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tokenIdentifier", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!user || user.role !== "owner") {
+      throw new Error("Only owners can delete tasks");
+    }
+
+    const task = await ctx.db.get(args.taskId);
+    if (!task) throw new Error("Task not found");
+
+    if (task.status === "running") {
+      throw new Error("Cannot delete a running task — cancel it first");
+    }
+
+    // Delete task runs
+    const runs = await ctx.db
+      .query("taskRuns")
+      .withIndex("by_taskId", (q) => q.eq("taskId", args.taskId))
+      .collect();
+    for (const run of runs) {
+      await ctx.db.delete(run._id);
+    }
+
+    // Delete delegations
+    const delegationsFrom = await ctx.db
+      .query("delegations")
+      .withIndex("by_parentTaskId", (q) => q.eq("parentTaskId", args.taskId))
+      .collect();
+    for (const d of delegationsFrom) {
+      await ctx.db.delete(d._id);
+    }
+    const delegationsTo = await ctx.db
+      .query("delegations")
+      .withIndex("by_childTaskId", (q) => q.eq("childTaskId", args.taskId))
+      .collect();
+    for (const d of delegationsTo) {
+      await ctx.db.delete(d._id);
+    }
+
+    // Delete related events
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_taskId", (q) => q.eq("taskId", args.taskId))
+      .collect();
+    for (const e of events) {
+      await ctx.db.delete(e._id);
+    }
+
+    // Delete approvals
+    const approvals = await ctx.db
+      .query("approvals")
+      .withIndex("by_taskId", (q) => q.eq("taskId", args.taskId))
+      .collect();
+    for (const a of approvals) {
+      await ctx.db.delete(a._id);
+    }
+
+    // Delete the task itself
+    await ctx.db.delete(args.taskId);
+  },
+});
+
+/**
+ * Retry a failed task. Owner-only.
+ */
+export const retryTask = mutation({
+  args: { taskId: v.id("tasks") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tokenIdentifier", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!user || user.role !== "owner") {
+      throw new Error("Only owners can retry tasks");
+    }
+
+    const task = await ctx.db.get(args.taskId);
+    if (!task) throw new Error("Task not found");
+
+    const transition = validateTransition(task.status, "queued", task.retryCount);
+    if (!transition.valid) {
+      throw new Error(`Cannot retry: ${transition.reason}`);
+    }
+
+    await ctx.db.patch(args.taskId, {
+      status: "queued",
+      retryCount: task.retryCount + 1,
+      errorMessage: undefined,
+    });
+
+    await ctx.db.insert("events", {
+      taskId: args.taskId,
+      agentId: task.ownerAgentId,
+      type: "task.auto_retry",
+      payload: JSON.stringify({ retriedBy: identity.tokenIdentifier }),
+    });
+
+    await ctx.scheduler.runAfter(0, internal.tasks.dispatchTask, {
+      taskId: args.taskId,
+    });
   },
 });

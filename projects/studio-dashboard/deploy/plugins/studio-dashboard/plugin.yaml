@@ -1,0 +1,19 @@
+name: studio-dashboard
+version: 1.0.0
+description: >
+  Bridges Hermes agents with the Intersection Studio dashboard (Convex backend).
+  Injects project context before each LLM call, logs tool usage to the activity feed,
+  sends completion callbacks, and provides custom tools for project source access
+  and approval requests.
+author: Intersection Studio
+provides_tools:
+  - read_project_sources
+  - request_approval
+  - report_progress
+provides_hooks:
+  - pre_llm_call
+  - post_tool_call
+  - on_session_end
+# Environment variables (CONVEX_SITE_URL, HERMES_CALLBACK_SECRET) are set
+# via Fly.io secrets and injected into the container at runtime.
+# Not using requires_env to avoid interactive prompts in gateway mode.

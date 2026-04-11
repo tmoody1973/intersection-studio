@@ -84,6 +84,9 @@ export const processHermesCallback = internalAction({
         ? JSON.stringify(payload.tokenUsage)
         : undefined,
       approvalReason: payload.approvalRequest?.reason,
+      delegations: payload.delegations
+        ? JSON.stringify(payload.delegations)
+        : undefined,
       errorClass: payload.errorClass,
       errorMessage: payload.errorMessage,
     });
@@ -102,6 +105,7 @@ export const applyCallbackResult = internalMutation({
     costCents: v.optional(v.number()),
     tokenUsage: v.optional(v.string()),
     approvalReason: v.optional(v.string()),
+    delegations: v.optional(v.string()), // JSON array of {to, task, reason}
     errorClass: v.optional(v.string()),
     errorMessage: v.optional(v.string()),
   },
