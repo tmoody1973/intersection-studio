@@ -93,6 +93,7 @@ function AgentPicker({
 interface Message {
   role: "user" | "assistant";
   content: string;
+  agentName?: string;
   timestamp?: number;
 }
 
@@ -102,7 +103,7 @@ export default function ChatPage() {
   const sendMessage = useAction(api.chat.sendMessage);
 
   const [selectedAgent, setSelectedAgent] = useState<Id<"agents"> | null>(null);
-  const [conversationId] = useState(() => `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const [conversationId, setConversationId] = useState(() => `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -162,6 +163,7 @@ export default function ChatPage() {
         {
           role: "assistant",
           content: result.content,
+          agentName: selectedAgentData?.name,
           timestamp: Date.now(),
         },
       ]);
@@ -171,6 +173,7 @@ export default function ChatPage() {
         {
           role: "assistant",
           content: `Error: ${err instanceof Error ? err.message : "Failed to reach agent"}`,
+          agentName: selectedAgentData?.name,
           timestamp: Date.now(),
         },
       ]);
@@ -202,7 +205,11 @@ export default function ChatPage() {
       <AgentPicker
         agents={agents ?? []}
         selectedId={selectedAgent}
-        onSelect={setSelectedAgent}
+        onSelect={(id) => {
+          setSelectedAgent(id);
+          setMessages([]);
+          setConversationId(`chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+        }}
       />
 
       {/* Chat area */}
@@ -333,7 +340,7 @@ export default function ChatPage() {
                       marginBottom: "0.25rem",
                     }}
                   >
-                    {selectedAgentData?.name}
+                    {msg.agentName ?? selectedAgentData?.name}
                   </div>
                 )}
                 {msg.content}
