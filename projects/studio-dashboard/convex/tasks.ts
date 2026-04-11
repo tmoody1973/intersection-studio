@@ -21,6 +21,7 @@ export const createGoal = mutation({
     description: v.string(),
     projectId: v.optional(v.id("projects")),
     priority: v.optional(v.string()),
+    skillHint: v.optional(v.string()), // e.g. "hackathon-brainstorm"
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -54,6 +55,7 @@ export const createGoal = mutation({
       spentCents: 0,
       threadId,
       retryCount: 0,
+      skillHint: args.skillHint,
     });
 
     await ctx.db.insert("events", {
@@ -249,21 +251,41 @@ export const dispatchTask = internalAction({
       threadId: task.threadId,
     });
 
+    const skillInstruction = task.skillHint
+      ? `\n## Skill\nUse the /${task.skillHint} skill to complete this task. Follow all phases in the skill.\n`
+      : "";
+
     const instructions = [
       `<!-- STUDIO_CONTEXT: ${studioContext} -->`,
       "",
       // Hermes loads SOUL.md natively. We add task-specific context here.
       "## Thread Context (previous decisions and findings)",
       threadContext,
+      skillInstruction,
+      "## Available Agents (for delegation)",
+      "Use the delegate_to_agent tool to delegate subtasks to the right agent:",
+      "- creative-director: Visual identity, brand, design",
+      "- engineering-lead: Technical architecture, code review",
+      "- content-lead: Content strategy, writing direction",
+      "- content-writer: Blog posts, case studies, drafts",
+      "- visual-designer: UI/UX, mockups",
+      "- frontend-dev / backend-dev: Code implementation",
+      "- social-media: Social posts, publishing",
+      "- data-analyst: Data research, metrics, APIs",
+      "- qa-reviewer: Quality checks",
       "",
       "## Response Format",
       "When done, respond with a JSON object:",
       '{ "status": "completed" | "needs_approval" | "failed",',
-      '  "result": "your output text",',
+      '  "result": "your FULL output document — do not truncate or summarize",',
       '  "approvalRequest": { "action": "what needs approval", "reason": "why" } }',
       "",
-      "You can also use the report_progress tool to send intermediate findings,",
-      "and request_approval tool when you need owner sign-off on a decision.",
+      "IMPORTANT: Include the complete deliverable in the result field.",
+      "This becomes the project artifact that Tarik reviews and downloads.",
+      "",
+      "You can use report_progress to send intermediate findings,",
+      "delegate_to_agent to assign work to other agents,",
+      "and request_approval when you need owner sign-off.",
     ].join("\n");
 
     // Use /v1/responses (stateful API) with named conversations matching threadId.

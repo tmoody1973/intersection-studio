@@ -206,6 +206,7 @@ export const applyCallbackResult = internalMutation({
     };
     if (args.result) {
       taskPatch.resultSummary = args.result.slice(0, 500);
+      taskPatch.resultFull = args.result; // full deliverable, not truncated
     }
     if (args.errorMessage) {
       taskPatch.errorMessage = args.errorMessage;

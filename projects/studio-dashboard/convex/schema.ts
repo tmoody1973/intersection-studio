@@ -118,7 +118,9 @@ export default defineSchema({
     parentTaskId: v.optional(v.id("tasks")),
     threadId: v.string(),
     retryCount: v.number(), // 0 = first attempt, 1 = retried (max)
+    skillHint: v.optional(v.string()), // e.g. "hackathon-brainstorm" — tells agent which skill to use
     resultSummary: v.optional(v.string()),
+    resultFull: v.optional(v.string()), // full deliverable document (not truncated)
     errorMessage: v.optional(v.string()),
   })
     .index("by_status", ["status"])
