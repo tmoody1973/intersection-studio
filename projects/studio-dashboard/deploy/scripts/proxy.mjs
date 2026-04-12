@@ -125,7 +125,7 @@ const server = createServer(async (req, res) => {
       const { stdout } = await execFileAsync(
         "gbrain",
         ["query", query, "--limit", "10"],
-        { timeout: 3000 }
+        { timeout: 5000 }
       );
       // Parse gbrain text output: "[score] slug -- title\ncontent..."
       const results = stdout.trim().split(/\n(?=\[)/).map((block) => {
@@ -142,7 +142,7 @@ const server = createServer(async (req, res) => {
     } catch (err) {
       if (err.killed) {
         res.writeHead(504, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Brain query timed out", timeout: 3000 }));
+        res.end(JSON.stringify({ error: "Brain query timed out", timeout: 5000 }));
       } else {
         res.writeHead(502, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Brain query failed", detail: err.message }));
