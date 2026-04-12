@@ -41,3 +41,4 @@ convex/_generated/
 .zencoder/
 skills/
 skills-lock.json
+.vercel

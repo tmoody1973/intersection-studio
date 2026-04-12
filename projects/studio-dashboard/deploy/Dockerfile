@@ -7,11 +7,21 @@ RUN apt-get update && apt-get install -y curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Create directories
-RUN mkdir -p /opt/studio/souls /opt/studio/scripts
+RUN mkdir -p /opt/studio/souls /opt/studio/scripts /opt/studio/skills /opt/studio/plugins
 
-# Copy files
+# Copy soul files (SOUL.md per agent)
 COPY souls/ /opt/studio/souls/
+
+# Copy routing proxy and startup scripts
 COPY scripts/ /opt/studio/scripts/
 RUN chmod +x /opt/studio/scripts/start.sh
+
+# Copy Bumwad methodology skills
+COPY skills/ /opt/studio/skills/
+
+# Copy studio-dashboard plugin
+COPY plugins/studio-dashboard/ /opt/studio/plugins/studio-dashboard/
+
+WORKDIR /root
 
 ENTRYPOINT ["/opt/studio/scripts/start.sh"]

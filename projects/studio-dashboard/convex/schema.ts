@@ -261,4 +261,39 @@ export default defineSchema({
   })
     .index("by_conversationId", ["conversationId"])
     .index("by_agentId", ["agentId"]),
+
+  /**
+   * Documents — deliverables produced by agents.
+   * The primary output of the Goal-First workspace.
+   * Auto-saved when a task completes with resultFull (via applyCallbackResult).
+   * Users review, reclassify, and "Copy for Claude Code" from the home page.
+   *
+   *   Goal input → CEO delegation → Hermes agent work → callback → document auto-saved
+   *   User reviews → clicks "Copy for Claude Code" → pastes in terminal → builds
+   */
+  documents: defineTable({
+    projectId: v.optional(v.id("projects")),
+    taskId: v.optional(v.id("tasks")),
+    type: v.union(
+      v.literal("case_study"),
+      v.literal("social_post"),
+      v.literal("prd"),
+      v.literal("design_doc"),
+      v.literal("research"),
+      v.literal("other"),
+    ),
+    title: v.string(),
+    body: v.string(),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("done"),
+      v.literal("handed_off"),
+    ),
+    createdByAgent: v.optional(v.id("agents")),
+    createdByUser: v.optional(v.string()), // Clerk tokenIdentifier
+  })
+    .index("by_projectId", ["projectId"])
+    .index("by_status", ["status"])
+    .index("by_type", ["type"])
+    .index("by_taskId", ["taskId"]),
 });

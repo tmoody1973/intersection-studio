@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useState } from "react";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { CreateProjectModal } from "./CreateProjectModal";
 
 const PHASE_LABELS: Record<string, string> = {
   research: "Research",
@@ -47,22 +48,7 @@ export function ProjectList({
   onSelect: (id: Id<"projects"> | null) => void;
 }) {
   const projects = useQuery(api.projects.list);
-  const createProject = useMutation(api.projects.create);
   const [showCreate, setShowCreate] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newDesc, setNewDesc] = useState("");
-
-  async function handleCreate() {
-    if (!newName.trim()) return;
-    const id = await createProject({
-      name: newName.trim(),
-      description: newDesc.trim() || newName.trim(),
-    });
-    setNewName("");
-    setNewDesc("");
-    setShowCreate(false);
-    onSelect(id);
-  }
 
   return (
     <div>
@@ -85,7 +71,7 @@ export function ProjectList({
           Projects
         </span>
         <button
-          onClick={() => setShowCreate(!showCreate)}
+          onClick={() => setShowCreate(true)}
           style={{
             fontSize: "var(--text-xs)",
             color: "var(--color-primary)",
@@ -97,61 +83,11 @@ export function ProjectList({
         </button>
       </div>
 
-      {showCreate && (
-        <div
-          style={{
-            background: "var(--color-surface-2)",
-            borderRadius: "var(--radius-md)",
-            padding: "var(--space-3)",
-            marginBottom: "var(--space-3)",
-            display: "grid",
-            gap: "var(--space-2)",
-          }}
-        >
-          <input
-            placeholder="Project name"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-            style={{
-              background: "var(--color-surface)",
-              border: "1px solid var(--color-border)",
-              borderRadius: "var(--radius-sm)",
-              padding: "0.4rem 0.6rem",
-              fontSize: "var(--text-xs)",
-              outline: "none",
-            }}
-            autoFocus
-          />
-          <input
-            placeholder="Brief description"
-            value={newDesc}
-            onChange={(e) => setNewDesc(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-            style={{
-              background: "var(--color-surface)",
-              border: "1px solid var(--color-border)",
-              borderRadius: "var(--radius-sm)",
-              padding: "0.4rem 0.6rem",
-              fontSize: "var(--text-xs)",
-              outline: "none",
-            }}
-          />
-          <button
-            onClick={handleCreate}
-            style={{
-              background: "var(--color-primary)",
-              color: "#fff",
-              borderRadius: "var(--radius-sm)",
-              padding: "0.4rem",
-              fontSize: "var(--text-xs)",
-              fontWeight: 600,
-            }}
-          >
-            Create
-          </button>
-        </div>
-      )}
+      <CreateProjectModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={(id) => onSelect(id)}
+      />
 
       <div style={{ display: "grid", gap: "var(--space-1)" }}>
         {/* "All" option */}
@@ -163,8 +99,14 @@ export function ProjectList({
             gap: "0.5rem",
             padding: "0.5rem 0.75rem",
             borderRadius: "var(--radius-md)",
-            background: selectedId === null ? "rgba(79, 152, 163, 0.12)" : "transparent",
-            color: selectedId === null ? "var(--color-text)" : "var(--color-text-muted)",
+            background:
+              selectedId === null
+                ? "rgba(79, 152, 163, 0.12)"
+                : "transparent",
+            color:
+              selectedId === null
+                ? "var(--color-text)"
+                : "var(--color-text-muted)",
             textAlign: "left",
             fontSize: "var(--text-xs)",
           }}
@@ -210,14 +152,16 @@ export function ProjectList({
               <PhaseTag phase={project.phase} />
             </div>
             {project.taskCounts.total > 0 && (
-              <span style={{ color: "var(--color-text-muted)", fontSize: "10px" }}>
+              <span
+                style={{ color: "var(--color-text-muted)", fontSize: "10px" }}
+              >
                 {project.taskCounts.completed}/{project.taskCounts.total} tasks
               </span>
             )}
           </button>
         ))}
 
-        {projects && projects.length === 0 && !showCreate && (
+        {projects && projects.length === 0 && (
           <div
             style={{
               padding: "var(--space-4)",
