@@ -124,11 +124,21 @@ const server = createServer(async (req, res) => {
     try {
       const { stdout } = await execFileAsync(
         "gbrain",
-        ["query", "--json", query],
+        ["query", query, "--limit", "10"],
         { timeout: 3000 }
       );
+      // Parse gbrain text output: "[score] slug -- title\ncontent..."
+      const results = stdout.trim().split(/\n(?=\[)/).map((block) => {
+        const match = block.match(/^\[([0-9.]+)\]\s+(\S+)\s+--\s+(.*)/s);
+        if (!match) return null;
+        const [, score, source, rest] = match;
+        const lines = rest.split("\n");
+        const title = lines[0].trim();
+        const snippet = lines.slice(1).join(" ").trim().slice(0, 300);
+        return { score: parseFloat(score), source, title, snippet };
+      }).filter(Boolean);
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(stdout);
+      res.end(JSON.stringify({ results }));
     } catch (err) {
       if (err.killed) {
         res.writeHead(504, { "Content-Type": "application/json" });
