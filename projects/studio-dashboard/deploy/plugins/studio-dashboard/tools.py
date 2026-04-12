@@ -201,6 +201,86 @@ def delegate_to_agent(args: dict, **kwargs) -> str:
         return json.dumps({"error": f"Delegation failed: {str(e)}", "agent": agent_profile})
 
 
+ROUTING_PROXY_BRAIN_URL = "http://localhost:3000"
+
+
+def query_brain(args: dict, **kwargs) -> str:
+    """Query the studio's institutional brain for relevant knowledge."""
+    query = args.get("query", "")
+    if not query:
+        return json.dumps({"error": "query is required"})
+
+    if not STUDIO_API_KEY:
+        return json.dumps({"error": "STUDIO_API_KEY not configured"})
+
+    try:
+        body = json.dumps({"q": query})
+        req = urllib.request.Request(
+            f"{ROUTING_PROXY_BRAIN_URL}/brain/query",
+            data=body.encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {STUDIO_API_KEY}",
+            },
+            method="POST",
+        )
+
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+            results = result if isinstance(result, list) else result.get("results", [])
+            return json.dumps({
+                "status": "success",
+                "results": results[:10],
+                "count": len(results),
+            })
+    except urllib.error.URLError as e:
+        return json.dumps({"error": f"Brain query failed: {e.reason}", "results": []})
+    except Exception as e:
+        return json.dumps({"error": f"Brain query failed: {str(e)}", "results": []})
+
+
+def write_brain(args: dict, **kwargs) -> str:
+    """Write a new entry to the studio's institutional brain."""
+    title = args.get("title", "")
+    content = args.get("content", "")
+    project = args.get("project", "")
+
+    if not title or not content:
+        return json.dumps({"error": "title and content are required"})
+
+    if not STUDIO_API_KEY:
+        return json.dumps({"error": "STUDIO_API_KEY not configured"})
+
+    try:
+        body = json.dumps({
+            "title": title,
+            "content": content,
+            "source": "agent-tool",
+            "project": project,
+        })
+        req = urllib.request.Request(
+            f"{ROUTING_PROXY_BRAIN_URL}/brain/write",
+            data=body.encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {STUDIO_API_KEY}",
+            },
+            method="POST",
+        )
+
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+            return json.dumps({
+                "status": "written",
+                "title": title,
+                "message": "Entry added to the studio brain.",
+            })
+    except urllib.error.URLError as e:
+        return json.dumps({"error": f"Brain write failed: {e.reason}"})
+    except Exception as e:
+        return json.dumps({"error": f"Brain write failed: {str(e)}"})
+
+
 def report_progress(args: dict, **kwargs) -> str:
     """Report intermediate progress back to the dashboard."""
     entry_type = args.get("type", "finding")

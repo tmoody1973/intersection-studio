@@ -18,6 +18,7 @@ import json
 import logging
 import os
 import time
+import urllib.request
 
 from . import schemas
 from . import tools
@@ -113,6 +114,30 @@ def _inject_project_context(
             )
             sections.append(f"Recent thread context:\n{thread_text}")
 
+        # Query GBrain for cross-project institutional context
+        try:
+            brain_body = json.dumps({"q": task_run_id or "current task context"})
+            brain_req = urllib.request.Request(
+                "http://localhost:3000/brain/query",
+                data=brain_body.encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {os.environ.get('STUDIO_API_KEY', '')}",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(brain_req, timeout=3) as brain_resp:
+                brain_result = json.loads(brain_resp.read().decode("utf-8"))
+                brain_items = brain_result if isinstance(brain_result, list) else brain_result.get("results", [])
+                if brain_items:
+                    brain_text = "\n".join(
+                        f"- [{b.get('title', 'Untitled')}] {str(b.get('content', b.get('snippet', '')))[:300]}"
+                        for b in brain_items[:5]
+                    )
+                    sections.append(f"Brain context (cross-project memory):\n{brain_text}")
+        except Exception as brain_err:
+            logger.debug("Brain query skipped: %s", brain_err)
+
         if sections:
             context = "\n\n".join(sections)
             return {"context": context}
@@ -203,9 +228,23 @@ def register(ctx):
         handler=tools.report_progress,
     )
 
+    # Register brain tools
+    ctx.register_tool(
+        name="query_brain",
+        toolset="studio",
+        schema=schemas.QUERY_BRAIN,
+        handler=tools.query_brain,
+    )
+    ctx.register_tool(
+        name="write_brain",
+        toolset="studio",
+        schema=schemas.WRITE_BRAIN,
+        handler=tools.write_brain,
+    )
+
     # Register lifecycle hooks
     ctx.register_hook("pre_llm_call", _inject_project_context)
     ctx.register_hook("post_tool_call", _log_tool_call)
     ctx.register_hook("on_session_end", _on_session_end)
 
-    logger.info("Studio Dashboard plugin loaded (3 tools, 3 hooks)")
+    logger.info("Studio Dashboard plugin loaded (6 tools, 3 hooks)")

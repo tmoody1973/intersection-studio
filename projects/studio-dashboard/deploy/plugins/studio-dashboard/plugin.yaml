@@ -10,6 +10,9 @@ provides_tools:
   - read_project_sources
   - request_approval
   - report_progress
+  - delegate_to_agent
+  - query_brain
+  - write_brain
 provides_hooks:
   - pre_llm_call
   - post_tool_call

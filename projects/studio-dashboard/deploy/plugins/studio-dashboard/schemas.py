@@ -102,6 +102,56 @@ DELEGATE_TO_AGENT = {
     },
 }
 
+QUERY_BRAIN = {
+    "name": "query_brain",
+    "description": (
+        "Search the studio's institutional brain for relevant knowledge. "
+        "The brain contains all past deliverables, design decisions, case studies, "
+        "dev diaries, and project documentation across the entire portfolio. "
+        "Use this to find prior art, reference decisions, or discover cross-project "
+        "patterns before starting new work."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "Natural language query (e.g., 'What did we decide about the logo for Crate?')",
+            },
+        },
+        "required": ["query"],
+    },
+}
+
+WRITE_BRAIN = {
+    "name": "write_brain",
+    "description": (
+        "Write a new entry to the studio's institutional brain. "
+        "Use this to persist important findings, decisions, or artifacts "
+        "that should be available to all agents in future tasks. "
+        "The brain auto-ingests completed deliverables, so only use this "
+        "for intermediate knowledge that won't be in the final output."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "title": {
+                "type": "string",
+                "description": "Short title for the brain entry",
+            },
+            "content": {
+                "type": "string",
+                "description": "The knowledge content to persist (markdown supported)",
+            },
+            "project": {
+                "type": "string",
+                "description": "Optional project name for categorization",
+            },
+        },
+        "required": ["title", "content"],
+    },
+}
+
 REPORT_PROGRESS = {
     "name": "report_progress",
     "description": (
