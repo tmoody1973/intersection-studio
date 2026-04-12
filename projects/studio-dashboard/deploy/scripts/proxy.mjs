@@ -11,6 +11,27 @@
  */
 
 import { createServer } from "node:http";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+const execFileAsync = promisify(execFile);
+
+const BRAIN_DIR = "/opt/data/brain";
+
+// Write serialization — PGLite supports ONE writer at a time
+let writeQueue = Promise.resolve();
+function serializeWrite(fn) {
+  writeQueue = writeQueue.then(fn).catch((err) => {
+    console.error("Brain write error:", err.message);
+  });
+  return writeQueue;
+}
+
+// Bearer auth check
+function verifyBearer(req) {
+  const auth = req.headers["authorization"] ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  return token === process.env.STUDIO_API_KEY && token !== "";
+}
 
 const AGENT_PORTS = {
   "ceo": 8650,
@@ -44,6 +65,14 @@ const server = createServer(async (req, res) => {
         results[name] = "offline";
       }
     }
+    // Brain health
+    try {
+      await execFileAsync("gbrain", ["doctor", "--data", BRAIN_DIR], { timeout: 3000 });
+      results["brain"] = "online";
+    } catch {
+      results["brain"] = "offline";
+    }
+
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(results));
     return;
@@ -69,6 +98,85 @@ const server = createServer(async (req, res) => {
     } catch {
       res.writeHead(502, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ profile, status: "offline" }));
+    }
+    return;
+  }
+
+  // Brain query — concurrent reads OK
+  if (url.pathname === "/brain/query" && req.method === "POST") {
+    if (!verifyBearer(req)) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Unauthorized" }));
+      return;
+    }
+
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const body = JSON.parse(Buffer.concat(chunks).toString());
+    const query = body.q || body.query || "";
+
+    if (!query) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "query is required" }));
+      return;
+    }
+
+    try {
+      const { stdout } = await execFileAsync(
+        "gbrain",
+        ["query", "--data", BRAIN_DIR, "--json", query],
+        { timeout: 3000 }
+      );
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(stdout);
+    } catch (err) {
+      if (err.killed) {
+        res.writeHead(504, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Brain query timed out", timeout: 3000 }));
+      } else {
+        res.writeHead(502, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Brain query failed", detail: err.message }));
+      }
+    }
+    return;
+  }
+
+  // Brain write — serialized (ONE writer at a time)
+  if (url.pathname === "/brain/write" && req.method === "POST") {
+    if (!verifyBearer(req)) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Unauthorized" }));
+      return;
+    }
+
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const body = JSON.parse(Buffer.concat(chunks).toString());
+    const { title, content, source, project } = body;
+
+    if (!title || !content) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "title and content are required" }));
+      return;
+    }
+
+    try {
+      await serializeWrite(async () => {
+        const args = ["write", "--data", BRAIN_DIR, "--title", title];
+        if (source) args.push("--source", source);
+        if (project) args.push("--project", project);
+        args.push("--stdin");
+
+        await execFileAsync("gbrain", args, {
+          timeout: 10000,
+          input: content,
+        });
+      });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "written", title }));
+    } catch (err) {
+      res.writeHead(502, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Brain write failed", detail: err.message }));
     }
     return;
   }

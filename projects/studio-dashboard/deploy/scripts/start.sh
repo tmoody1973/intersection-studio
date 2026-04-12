@@ -31,6 +31,17 @@ echo "Data dir: /opt/data (Fly.io persistent volume)"
 echo "Profiles dir: /opt/data/profiles/"
 ls /opt/data/profiles/ 2>/dev/null || echo "  (empty — first boot)"
 
+# --- GBrain initialization ---
+echo "Initializing GBrain..."
+BRAIN_DIR="/opt/data/brain"
+if [ ! -d "$BRAIN_DIR" ]; then
+  echo "First boot: creating brain at $BRAIN_DIR"
+  gbrain init --data "$BRAIN_DIR" 2>/dev/null || echo "WARNING: gbrain init failed"
+else
+  echo "Brain exists at $BRAIN_DIR"
+fi
+gbrain doctor --data "$BRAIN_DIR" 2>/dev/null && echo "Brain health: OK" || echo "WARNING: Brain health check failed"
+
 SETUP_MARKER="/opt/data/.setup-complete-v2"
 
 # If marker exists but ANY profile is missing, force re-setup
