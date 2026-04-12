@@ -15,7 +15,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 
-const BRAIN_DIR = "/opt/data/brain";
+// GBrain uses ~/.gbrain/ by default (symlinked to /opt/data/gbrain in start.sh)
 
 // Write serialization — PGLite supports ONE writer at a time
 let writeQueue = Promise.resolve();
@@ -67,7 +67,7 @@ const server = createServer(async (req, res) => {
     }
     // Brain health
     try {
-      await execFileAsync("gbrain", ["doctor", "--data", BRAIN_DIR], { timeout: 3000 });
+      await execFileAsync("gbrain", ["doctor"], { timeout: 3000 });
       results["brain"] = "online";
     } catch {
       results["brain"] = "offline";
@@ -124,7 +124,7 @@ const server = createServer(async (req, res) => {
     try {
       const { stdout } = await execFileAsync(
         "gbrain",
-        ["query", "--data", BRAIN_DIR, "--json", query],
+        ["query", "--json", query],
         { timeout: 3000 }
       );
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -162,7 +162,7 @@ const server = createServer(async (req, res) => {
 
     try {
       await serializeWrite(async () => {
-        const args = ["write", "--data", BRAIN_DIR, "--title", title];
+        const args = ["write", "--title", title];
         if (source) args.push("--source", source);
         if (project) args.push("--project", project);
         args.push("--stdin");

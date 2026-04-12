@@ -32,15 +32,23 @@ echo "Profiles dir: /opt/data/profiles/"
 ls /opt/data/profiles/ 2>/dev/null || echo "  (empty — first boot)"
 
 # --- GBrain initialization ---
+# GBrain uses ~/.gbrain/ by default. Symlink to persistent volume so data
+# survives across deploys.
 echo "Initializing GBrain..."
-BRAIN_DIR="/opt/data/brain"
-if [ ! -d "$BRAIN_DIR" ]; then
-  echo "First boot: creating brain at $BRAIN_DIR"
-  gbrain init --data "$BRAIN_DIR" 2>/dev/null || echo "WARNING: gbrain init failed"
-else
-  echo "Brain exists at $BRAIN_DIR"
+BRAIN_PERSIST="/opt/data/gbrain"
+mkdir -p "$BRAIN_PERSIST"
+if [ ! -L "/root/.gbrain" ]; then
+  rm -rf /root/.gbrain
+  ln -s "$BRAIN_PERSIST" /root/.gbrain
+  echo "  Symlinked ~/.gbrain -> $BRAIN_PERSIST"
 fi
-gbrain doctor --data "$BRAIN_DIR" 2>/dev/null && echo "Brain health: OK" || echo "WARNING: Brain health check failed"
+if [ ! -f "$BRAIN_PERSIST/brain.pglite/PG_VERSION" ]; then
+  echo "First boot: initializing brain..."
+  gbrain init 2>/dev/null || echo "WARNING: gbrain init failed"
+else
+  echo "Brain exists at $BRAIN_PERSIST"
+fi
+gbrain doctor 2>/dev/null && echo "Brain health: OK" || echo "WARNING: Brain health check failed"
 
 SETUP_MARKER="/opt/data/.setup-complete-v2"
 
