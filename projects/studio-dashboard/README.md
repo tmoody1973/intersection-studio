@@ -1,15 +1,17 @@
 # Studio Dashboard
 
-> Intersection Studio Control Room -- 12 AI agents managed through a reactive dashboard.
+> Intersection Studio's deliverable factory. Type a goal, 12 AI agents produce the document, copy it into Claude Code to build.
 
 **Live:** [studio-dashboard-eta.vercel.app](https://studio-dashboard-eta.vercel.app)
 **Agents:** [intersection-studio.fly.dev/health](https://intersection-studio.fly.dev/health)
 
 ## What This Is
 
-A product architect's command center. 12 [Hermes Agent](https://github.com/NousResearch/hermes-agent) profiles running on Fly.io, wrapped in a Next.js + Convex + Clerk control plane. You create projects, assign tasks to agents, they research and design using real tools (web search, terminal, file ops), and you approve results. Every decision becomes institutional memory.
+A product architect's workspace for running a 20-product studio with AI agents. Type a goal ("write a case study for Crate"), the CEO agent decomposes and delegates it to the right specialist, and a finished document comes back. Click "Copy for Claude Code" to hand it off for construction.
 
-Hermes is an open-source autonomous agent framework by [Nous Research](https://nousresearch.com/) with built-in tools, skills, plugins, and memory. See the [Hermes docs](https://hermes-agent.nousresearch.com/docs).
+12 [Hermes Agent](https://github.com/NousResearch/hermes-agent) profiles on Fly.io, wrapped in a Next.js + Convex + Clerk control plane. Agents have real tools (web search, terminal, file ops, delegation). Every deliverable is auto-saved. Every decision becomes institutional memory.
+
+The dashboard is the Architecture Firm. Claude Code is the General Contractor.
 
 Built for [Tarik Moody](https://tarikmoody.com)'s AfroTech 2026 talk: "Your Expertise Is the New Code."
 
@@ -62,11 +64,19 @@ CONVEX CLOUD                        │  Data (:8661)        Llama 3.3  │
 
 ## Dashboard Pages
 
-### Overview (`/`)
-- Org chart with 12 agents, live status dots, model picker
-- KPI row: active tasks, daily spend, agents online, pending approvals
-- Activity feed: real-time log of all agent actions + tool usage
-- Cost dashboard: today/month/projected spend, budget bar, per-agent breakdown
+### Home (`/`) -- Goal-First Workspace
+- **Hero goal input**: "What do you want to work on?" -- dispatches to CEO agent via Paperclip-style delegation
+- **Recent Documents**: auto-saved deliverables from completed agent tasks
+- **Type reclassification**: dropdown to label documents (Case Study, Social Post, PRD, Design Doc, Research)
+- **"Copy for Claude Code"**: one-click clipboard with structured markdown payload for handoff to Claude Code
+- Error states: agent offline, no documents, working on it (pulse animation)
+
+### Chat (`/chat`) -- Agent Conversations
+- Direct conversations with any of the 12 agents
+- Agent picker sidebar with online/offline status
+- Project-scoped context injection (agents see project sources, thread history, plans)
+- Conversation history persisted in Convex
+- Like working in Claude Code, but with your AI team
 
 ### Tasks (`/tasks`) -- Kanban Board
 - 5 columns: Queued, Running, Waiting Approval, Completed, Failed
@@ -224,9 +234,12 @@ curl -s -X POST https://intersection-studio.fly.dev/v1/chat/completions \
 
 ```
 convex/
-  schema.ts            11 tables with indexes + search index
-  tasks.ts             createTask, dispatchTask, listForKanban, cancel, retry, archive, delete
-  callbacks.ts         HMAC verify + apply result (state machine)
+  schema.ts            12 tables with indexes + search index
+  tasks.ts             createGoal, createTask, dispatchTask, listForKanban, cancel, retry, archive, delete
+  documents.ts         list, get, create (idempotent), updateType, updateStatus, listRecent
+  documents.test.ts    25 tests (status transitions, clipboard format, auto-save logic, type labels)
+  callbacks.ts         HMAC verify + apply result (state machine) + auto-save to documents
+  chat.ts              sendMessage (proxied to Hermes), conversation history, project context
   agents.ts            listWithStatus, getAgent, updateSoul, updateConfig, updateTools, updateModel
   approvals.ts         listPending, resolve (guarded)
   events.ts            listRecent (activity feed)
@@ -237,7 +250,7 @@ convex/
   pluginEndpoints.ts   getProjectContext, logToolUsage, reportProgress
   heartbeat.ts         health checks, timeout enforcement, approval expiry
   crons.ts             heartbeat (2min), daily spend reset, model refresh
-  migrations.ts        populateSouls (one-time)
+  migrations.ts        populateSouls, backfillDocuments (batched, one-time)
   seed.ts              12 agent profiles with org hierarchy
   users.ts             ensureUser, currentUser (RBAC)
   http.ts              /hermes-callback, /project-context, /hermes-tool-log, /hermes-progress
@@ -251,7 +264,8 @@ src/app/
   globals.css          Design system tokens + animations
   (dashboard)/
     layout.tsx         Sidebar + header + auth gate + project context
-    page.tsx           Overview (OrgChart, KpiRow, ActivityFeed, CostDashboard)
+    page.tsx           Goal-First home (goal input, recent documents, Copy for Claude Code)
+    chat/page.tsx      Agent chat (agent picker, conversation history, project context)
     agents/page.tsx    Agent grid + editor panel (Soul, Skills, Config tabs)
     tasks/page.tsx     Kanban board + task detail panel + create task modal
     settings/page.tsx  Settings placeholder
@@ -260,7 +274,7 @@ src/components/
   dashboard/           OrgChart, KpiRow, ActivityFeed, ApprovalOverlay,
                        CommandPalette, CostDashboard, PresentationToggle,
                        ProjectList, CreateProjectModal
-  layout/              Sidebar (routed with active state)
+  layout/              Sidebar (5 routes: Overview, Chat, Agents, Tasks, Settings)
   providers/           ConvexClientProvider, ProjectContext
 
 deploy/
@@ -271,7 +285,7 @@ deploy/
   plugins/             studio-dashboard Python plugin
   scripts/
     start.sh           Profile setup + plugin install + gateway startup
-    proxy.mjs          HTTP routing proxy (port 3000 → 12 gateways)
+    proxy.mjs          Streaming HTTP proxy (port 3000 → 12 gateways, 30s keep-alive for Fly.io)
 
 docs/
   plans/               Design documents
