@@ -2,6 +2,30 @@
 
 ---
 
+## 2026-04-12
+
+**Project:** Studio Dashboard (Intersection Studio OS)
+**Session:** Marathon build — control room → operating system
+
+- Published `docs/architecture-studio-os-v2.md` — Paperclip + gbrain + Bumwad model fully documented; the studio's operating model now has a blueprint
+- **Paperclip-style CEO delegation shipped** — `createGoal` mutation lets Tarik describe what he wants; CEO agent auto-routes to the right agent via `delegate_to_agent` plugin tool; delegation logged to Convex activity feed (~981 line insertion across 6 files)
+- Added `studio-dashboard` Hermes plugin — `plugin.yaml`, `schemas.py`, `tools.py`, and `__init__.py`; CEO talks to Convex via this plugin to read projects, list agents, and dispatch work
+- **Skill-driven goals** — tasks now carry a `skillHint` field telling the assigned agent which skill to invoke; `resultFull` field stores the complete deliverable (viewable + downloadable, no truncation)
+- **Hackathon-brainstorm skill** added for Hermes agents — SKILL.md spec + past-winners reference doc; first domain-specific research skill in the system
+- **Agent chat live in Studio Dashboard** — persistent `chatMessages` table in Convex; agents receive full project list + project detail as context; chat page in Next.js app
+- Fixed: agent name stored per-message (not derived from selected agent) — switching agents clears conversation and relabels correctly
+- Fixed: Hermes Docker paths corrected to `/opt/data/profiles/` (official volume mount path); self-healing checks all 12 profiles; proxy timeout raised from 30s → 5 min for tool-using agents (web search, terminal)
+- Dev Diary #014 (`2026-04-09`) documents the conceptual shift: Hermes agents = architecture firm, Claude Code = general contractor, Tarik = principal architect; the metaphor is now literal code
+- **Milestone:** Studio Dashboard crossed from monitoring tool to full studio operating system — one session, 7 commits
+
+**Items needing attention:**
+- gbrain integration is designed (architecture doc) but not yet built — Knowledge page is planned, not shipped
+- Due dates, milestones, task dependencies remain P1/P2 backlog items (per OS v2 doc)
+- Hackathon-brainstorm skill needs a real run to validate output quality
+- MKE Dashboard open decisions still pending: Housing tab split, Hmong translation review, no deployment yet
+
+---
+
 ## 2026-04-08
 
 - No commits in the last 24 hours — studio is in a rest/review cycle after an intensive 2-day build sprint
