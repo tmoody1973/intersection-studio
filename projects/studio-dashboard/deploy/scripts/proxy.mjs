@@ -100,14 +100,57 @@ const server = createServer(async (req, res) => {
         signal: AbortSignal.timeout(300000), // 5 min — agents use tools (web search, etc.)
       });
 
-      // Forward response
-      res.writeHead(proxyRes.status, {
-        "Content-Type": proxyRes.headers.get("content-type") ?? "application/json",
-      });
-      const responseBody = await proxyRes.text();
-      res.end(responseBody);
+      // Determine if this is an external request (via Fly.io edge) or
+      // an internal request (agent-to-agent delegation via localhost).
+      // Only external requests need keep-alive to prevent Fly.io's 60s idle timeout.
+      const isInternal = req.headers.host?.startsWith("localhost") ||
+                         req.headers.host?.startsWith("127.0.0.1");
+
+      if (isInternal) {
+        // Internal: simple forward, no streaming tricks needed
+        res.writeHead(proxyRes.status, {
+          "Content-Type": proxyRes.headers.get("content-type") ?? "application/json",
+        });
+        const responseBody = await proxyRes.text();
+        res.end(responseBody);
+      } else {
+        // External: stream with keep-alive to survive Fly.io's 60s idle timeout
+        res.writeHead(proxyRes.status, {
+          "Content-Type": proxyRes.headers.get("content-type") ?? "application/json",
+          "Transfer-Encoding": "chunked",
+        });
+
+        let keepAliveTimer = null;
+        const resetKeepAlive = () => {
+          if (keepAliveTimer) clearInterval(keepAliveTimer);
+          keepAliveTimer = setInterval(() => {
+            if (!res.writableEnded) res.write(" ");
+          }, 30000);
+        };
+        resetKeepAlive();
+
+        try {
+          const reader = proxyRes.body?.getReader();
+          if (reader) {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              res.write(value);
+              resetKeepAlive();
+            }
+          } else {
+            const text = await proxyRes.text();
+            res.write(text);
+          }
+        } finally {
+          if (keepAliveTimer) clearInterval(keepAliveTimer);
+          res.end();
+        }
+      }
     } catch (err) {
-      res.writeHead(502, { "Content-Type": "application/json" });
+      if (!res.headersSent) {
+        res.writeHead(502, { "Content-Type": "application/json" });
+      }
       res.end(JSON.stringify({
         error: "Agent unavailable",
         profile,

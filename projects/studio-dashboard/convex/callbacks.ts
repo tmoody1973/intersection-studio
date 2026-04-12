@@ -213,7 +213,26 @@ export const applyCallbackResult = internalMutation({
     }
     await ctx.db.patch(task._id, taskPatch);
 
-    // 9. If needs_approval: create approval with 60-min expiry
+    // 9. Auto-save deliverable as document
+    if (newTaskStatus === "completed" && args.result) {
+      const existingDoc = await ctx.db
+        .query("documents")
+        .withIndex("by_taskId", (q) => q.eq("taskId", task._id))
+        .unique();
+      if (!existingDoc) {
+        await ctx.db.insert("documents", {
+          projectId: task.projectId,
+          taskId: task._id,
+          type: "other",
+          title: task.title,
+          body: args.result,
+          status: "draft",
+          createdByAgent: taskRun.agentId,
+        });
+      }
+    }
+
+    // 10. If needs_approval: create approval with 60-min expiry (renumbered from 9)
     if (args.status === "needs_approval" && args.approvalReason) {
       await ctx.db.insert("approvals", {
         taskId: task._id,

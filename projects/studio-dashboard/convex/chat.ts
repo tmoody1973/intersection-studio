@@ -123,7 +123,7 @@ export const sendMessage = action({
         model: "hermes-agent",
         messages,
       }),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(120_000), // 2 min — agents use tools (web search, delegation, etc.)
     });
 
     if (!response.ok) {

@@ -54,7 +54,12 @@ def _post_to_convex(path: str, data: dict) -> dict:
 
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+            raw = resp.read().decode("utf-8")
+            try:
+                return json.loads(raw)
+            except json.JSONDecodeError:
+                # Convex endpoints return plain "OK" for fire-and-forget routes
+                return {"status": "ok", "raw": raw}
     except urllib.error.HTTPError as e:
         return {"error": f"HTTP {e.code}: {e.reason}"}
     except urllib.error.URLError as e:
@@ -185,7 +190,7 @@ def delegate_to_agent(args: dict, **kwargs) -> str:
                 "status": "delegated",
                 "agent": agent_profile,
                 "task": task_title,
-                "result": output_text[:2000] if output_text else "Agent completed with no text output",
+                "result": output_text if output_text else "Agent completed with no text output",
             })
 
     except urllib.error.HTTPError as e:
