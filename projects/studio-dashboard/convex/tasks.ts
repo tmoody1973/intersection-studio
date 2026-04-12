@@ -219,14 +219,35 @@ export const dispatchTask = internalAction({
     );
     if (!taskRunId) return;
 
-    // Read thread context for the agent
-    const threadEntries = await ctx.runQuery(
-      internal.tasks.getThreadEntries,
-      { threadId: task.threadId },
-    );
+    // Fetch thread context and brain context in parallel
+    const { callProxy } = await import("./lib/proxy");
+    const [threadEntries, brainResults] = await Promise.all([
+      ctx.runQuery(internal.tasks.getThreadEntries, { threadId: task.threadId }),
+      callProxy("/brain/query", { q: task.title }, 3000)
+        .then((r) => {
+          const raw = Array.isArray(r) ? r : ((r.results ?? []) as Record<string, unknown>[]);
+          return raw.slice(0, 5);
+        })
+        .catch((err) => {
+          console.warn("Brain query failed (proceeding without):", err instanceof Error ? err.message : err);
+          return [];
+        }),
+    ]);
+
     const threadContext = threadEntries
-      .map((e) => `[${e.type}] ${e.content}`)
+      .map((e: { type: string; content: string }) => `[${e.type}] ${e.content}`)
       .join("\n\n");
+
+    // Build brain context section (capped at ~2000 tokens)
+    let brainContext = "";
+    if (brainResults.length > 0) {
+      const brainSnippets = brainResults.map((r: Record<string, unknown>) => {
+        const title = (r.title as string) || "Untitled";
+        const content = ((r.content as string) || (r.snippet as string) || "").slice(0, 400);
+        return `- ${title}: ${content}`;
+      });
+      brainContext = "\n\n## Brain Context (cross-project institutional memory)\n" + brainSnippets.join("\n");
+    }
 
     // Build the Hermes API request
     const hermesUrl = process.env.HERMES_API_URL;
@@ -261,6 +282,7 @@ export const dispatchTask = internalAction({
       // Hermes loads SOUL.md natively. We add task-specific context here.
       "## Thread Context (previous decisions and findings)",
       threadContext,
+      brainContext,
       skillInstruction,
       "## Available Agents (for delegation)",
       "Use the delegate_to_agent tool to delegate subtasks to the right agent:",
