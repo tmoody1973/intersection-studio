@@ -223,7 +223,7 @@ export const dispatchTask = internalAction({
     const { callProxy } = await import("./lib/proxy");
     const [threadEntries, brainResults] = await Promise.all([
       ctx.runQuery(internal.tasks.getThreadEntries, { threadId: task.threadId }),
-      callProxy("/brain/query", { q: task.title }, 3000)
+      callProxy("/brain/query", { q: `${task.title} ${task.description}` }, 5000)
         .then((r) => {
           const raw = Array.isArray(r) ? r : ((r.results ?? []) as Record<string, unknown>[]);
           return raw.slice(0, 5);
