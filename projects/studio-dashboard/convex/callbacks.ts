@@ -90,6 +90,21 @@ export const processHermesCallback = internalAction({
       errorClass: payload.errorClass,
       errorMessage: payload.errorMessage,
     });
+
+    // Auto-ingest deliverable to GBrain (fire-and-forget)
+    if (payload.status === "completed" && payload.result) {
+      try {
+        const { callProxy } = await import("./lib/proxy");
+        await callProxy("/brain/write", {
+          title: payload.taskRunId,
+          content: payload.result,
+          source: "hermes-callback",
+        }, 5000);
+      } catch (err) {
+        // Brain write failure is non-blocking
+        console.warn("Brain auto-ingest failed (non-blocking):", err instanceof Error ? err.message : err);
+      }
+    }
   },
 });
 

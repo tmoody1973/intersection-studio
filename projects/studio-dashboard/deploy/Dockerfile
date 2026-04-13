@@ -6,6 +6,14 @@ RUN apt-get update && apt-get install -y curl && \
     apt-get install -y nodejs && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Install Bun for GBrain (Bun-native, needs unzip)
+RUN apt-get update && apt-get install -y unzip && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:$PATH"
+
+# Install GBrain (institutional brain)
+RUN bun add -g github:garrytan/gbrain
+
 # Create directories
 RUN mkdir -p /opt/studio/souls /opt/studio/scripts /opt/studio/skills /opt/studio/plugins
 
