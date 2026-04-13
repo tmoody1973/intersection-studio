@@ -172,14 +172,13 @@ const server = createServer(async (req, res) => {
 
     try {
       await serializeWrite(async () => {
-        const args = ["write", "--title", title];
-        if (source) args.push("--source", source);
-        if (project) args.push("--project", project);
-        args.push("--stdin");
+        // gbrain uses "put <slug> --content <markdown>" to write pages
+        const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
+        const frontmatter = `---\ntitle: "${title.replace(/"/g, '\\"')}"\ntype: concept\n${source ? `source: ${source}\n` : ""}${project ? `project: ${project}\n` : ""}---\n\n`;
+        const args = ["put", slug, "--content", frontmatter + content];
 
         await execFileAsync("gbrain", args, {
           timeout: 10000,
-          input: content,
         });
       });
       res.writeHead(200, { "Content-Type": "application/json" });
