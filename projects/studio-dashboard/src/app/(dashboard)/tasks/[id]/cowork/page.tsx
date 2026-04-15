@@ -10,15 +10,19 @@ import { CopilotChat } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 import {
   ArrowLeft,
-  Copy,
-  Check,
   Bot,
   Volume2,
   VolumeX,
   Loader2,
   AlertCircle,
   Clock,
+  MessageSquare,
+  FileText,
 } from "lucide-react";
+import { SmartCopy } from "./SmartCopy";
+import { CostTicker } from "./CostTicker";
+import { AgentAvatar, DelegationFlow } from "./AgentAvatar";
+import { BrainCard, BrainCardEmpty } from "./BrainCard";
 
 /**
  * Co-Work Mode — CopilotKit-powered collaborative agent workspace.
@@ -51,11 +55,13 @@ export default function CoWorkMode() {
 
   const [sessionId] = useState(() => crypto.randomUUID());
   const [sessionStarted, setSessionStarted] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [costCents, setCostCents] = useState(0);
+  const [totalTokens, setTotalTokens] = useState(0);
   const [deliverable, setDeliverable] = useState("");
+  const [agentNotes, setAgentNotes] = useState<string[]>([]);
   const [serverHealthy, setServerHealthy] = useState<boolean | null>(null);
+  const [mobileTab, setMobileTab] = useState<"chat" | "document">("chat");
 
   // Health check on mount
   useEffect(() => {
@@ -76,30 +82,7 @@ export default function CoWorkMode() {
 
   const isReplay = task?.status === "completed" && !sessionStarted;
   const isOffline = serverHealthy === false;
-
-  // Smart Copy for Claude Code
-  const handleCopy = useCallback(() => {
-    const content = deliverable || task?.resultFull || task?.resultSummary || "";
-    const prompt = [
-      `# ${task?.title ?? "Deliverable"}`,
-      `Project: Intersection Studio`,
-      `Agent: CEO (supervisor) → delegated to specialists`,
-      `Session: ${sessionId}`,
-      "",
-      "## Deliverable",
-      content,
-      "",
-      "---",
-      "Build this. Implementation specs above.",
-      "The CEO agent produced this after querying the institutional brain",
-      "and delegating to specialist agents. Review and implement.",
-    ].join("\n");
-
-    navigator.clipboard?.writeText(prompt).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }, [task, deliverable, sessionId]);
+  const currentDeliverable = deliverable || task?.resultFull || task?.resultSummary || "";
 
   // Loading
   if (!task) {
@@ -162,15 +145,11 @@ export default function CoWorkMode() {
           </div>
           {replayContent && (
             <div style={{ marginTop: 24 }}>
-              <button onClick={handleCopy} style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "10px 16px", background: "#f59e0b",
-                border: "none", borderRadius: 8, color: "#000", fontWeight: 600,
-                cursor: "pointer", fontSize: 14,
-              }}>
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-                {copied ? "Copied!" : "Copy for Claude Code"}
-              </button>
+              <SmartCopy
+                taskTitle={task.title}
+                deliverable={replayContent}
+                sessionId={task.sessionId ?? "replay"}
+              />
             </div>
           )}
         </div>
@@ -199,9 +178,7 @@ export default function CoWorkMode() {
             <span style={{ fontSize: 14, fontWeight: 600 }}>{task.title}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <span style={{ fontSize: 12, color: "#888", fontFamily: "monospace" }}>
-              ${(costCents / 100).toFixed(2)}
-            </span>
+            <CostTicker costCents={costCents} tokens={totalTokens} />
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
               style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}
@@ -215,10 +192,42 @@ export default function CoWorkMode() {
           </div>
         </div>
 
+        {/* Mobile tab bar */}
+        <div className="cowork-mobile-tabs" style={{
+          display: "none",
+          borderBottom: "1px solid #2a2a2a",
+          flexShrink: 0,
+        }}>
+          {(["chat", "document"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setMobileTab(tab)}
+              style={{
+                flex: 1,
+                padding: "10px 0",
+                background: "none",
+                border: "none",
+                borderBottom: mobileTab === tab ? "2px solid #f59e0b" : "2px solid transparent",
+                color: mobileTab === tab ? "#fafafa" : "#555",
+                fontSize: 13,
+                fontWeight: mobileTab === tab ? 600 : 400,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+              }}
+            >
+              {tab === "chat" ? <MessageSquare size={14} /> : <FileText size={14} />}
+              {tab === "chat" ? "Chat" : "Document"}
+            </button>
+          ))}
+        </div>
+
         {/* Split view: Chat (40%) | Artifact (60%) */}
-        <div style={{ display: "grid", gridTemplateColumns: "40fr 60fr", flex: 1, overflow: "hidden" }}>
+        <div className="cowork-split" style={{ display: "grid", gridTemplateColumns: "40fr 60fr", flex: 1, overflow: "hidden" }}>
           {/* LEFT: CopilotChat */}
-          <div style={{
+          <div className="cowork-chat-panel" style={{
             borderRight: "1px solid #2a2a2a",
             display: "flex", flexDirection: "column",
             overflow: "hidden",
@@ -234,14 +243,14 @@ export default function CoWorkMode() {
           </div>
 
           {/* RIGHT: Artifact Panel */}
-          <div style={{
+          <div className="cowork-artifact-panel" style={{
             display: "flex", flexDirection: "column",
             overflow: "hidden", position: "relative",
           }}>
             <div style={{ flex: 1, overflow: "auto", padding: "24px 32px" }}>
-              {deliverable ? (
+              {currentDeliverable ? (
                 <div style={{ fontSize: 16, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                  {deliverable}
+                  {currentDeliverable}
                 </div>
               ) : (
                 <div style={{ display: "grid", placeItems: "center", height: "100%", color: "#555" }}>
@@ -258,25 +267,22 @@ export default function CoWorkMode() {
               )}
             </div>
 
-            {/* Copy button — fixed bottom-right */}
-            {(deliverable || task.resultFull) && (
+            {/* Smart Copy — fixed bottom-right */}
+            {currentDeliverable && (
               <div style={{ position: "absolute", bottom: 16, right: 16 }}>
-                <button onClick={handleCopy} style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "10px 16px", background: "#f59e0b",
-                  border: "none", borderRadius: 8, color: "#000", fontWeight: 600,
-                  cursor: "pointer", fontSize: 14, boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                }}>
-                  {copied ? <Check size={16} /> : <Copy size={16} />}
-                  {copied ? "Copied!" : "Copy for Claude Code"}
-                </button>
+                <SmartCopy
+                  taskTitle={task.title}
+                  deliverable={currentDeliverable}
+                  sessionId={sessionId}
+                  agentNotes={agentNotes}
+                />
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* CopilotKit dark theme overrides */}
+      {/* CopilotKit dark theme + responsive overrides */}
       <style>{`
         .cowork-chat {
           height: 100% !important;
@@ -288,13 +294,23 @@ export default function CoWorkMode() {
           --copilot-kit-secondary-contrast-color: #888;
         }
         @media (max-width: 768px) {
-          [style*="grid-template-columns: 40fr 60fr"] {
+          .cowork-mobile-tabs {
+            display: flex !important;
+          }
+          .cowork-split {
             grid-template-columns: 1fr !important;
           }
-          [style*="border-right: 1px solid #2a2a2a"] {
+          .cowork-chat-panel {
             border-right: none !important;
-            border-bottom: 1px solid #2a2a2a !important;
-            max-height: 50vh !important;
+            display: ${mobileTab === "chat" ? "flex" : "none"} !important;
+          }
+          .cowork-artifact-panel {
+            display: ${mobileTab === "document" ? "flex" : "none"} !important;
+          }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .cowork-split {
+            grid-template-columns: 45fr 55fr !important;
           }
         }
       `}</style>
