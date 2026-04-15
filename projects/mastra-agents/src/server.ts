@@ -13,9 +13,12 @@ app.use("/*", cors({
   origin: (origin) => {
     if (!origin) return "http://localhost:3000";
     if (origin === "http://localhost:3000") return origin;
-    if (origin === "https://intersection-studio.vercel.app") return origin;
-    // Allow Vercel preview deployments
-    if (/^https:\/\/intersection-studio[a-z0-9-]*\.vercel\.app$/.test(origin)) return origin;
+    if (origin === "https://studio-dashboard-eta.vercel.app") return origin;
+    if (origin === "https://control.intersection.sh") return origin;
+    // Allow Vercel preview deployments (studio-dashboard-*-tmoody1973s-projects.vercel.app)
+    if (/^https:\/\/studio-dashboard[a-z0-9-]*\.vercel\.app$/.test(origin)) return origin;
+    // Allow any *.vercel.app for Vercel preview URLs
+    if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin)) return origin;
     return null;
   },
   allowMethods: ["GET", "POST", "OPTIONS"],
@@ -25,8 +28,8 @@ app.use("/*", cors({
 // Bearer token auth middleware — protects ALL routes
 const API_KEY = process.env.COPILOTKIT_API_KEY;
 app.use("/*", async (c, next) => {
-  // Skip auth for health check and OPTIONS (CORS preflight)
-  if (c.req.path === "/health" || c.req.method === "OPTIONS") {
+  // Skip auth for health check, CopilotKit runtime info, and OPTIONS (CORS preflight)
+  if (c.req.path === "/health" || c.req.path === "/chat/info" || c.req.method === "OPTIONS") {
     return next();
   }
 

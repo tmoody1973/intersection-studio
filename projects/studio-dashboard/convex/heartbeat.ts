@@ -50,7 +50,7 @@ export const checkAllAgents = internalAction({
 
     // 4. Update each agent's status based on health response
     for (const agent of agents) {
-      const flyStatus = healthData[agent.hermesProfileId];
+      const flyStatus = agent.hermesProfileId ? healthData[agent.hermesProfileId] : undefined;
       const isOnline = flyStatus === "online";
       await ctx.runMutation(internal.heartbeat.updateAgentHealth, {
         agentId: agent._id,

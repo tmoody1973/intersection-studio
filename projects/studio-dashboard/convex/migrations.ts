@@ -334,7 +334,7 @@ export const populateSouls = internalMutation({
     let updated = 0;
 
     for (const agent of agents) {
-      const soul = SOULS[agent.hermesProfileId];
+      const soul = agent.hermesProfileId ? SOULS[agent.hermesProfileId] : undefined;
       if (soul && !agent.soulMarkdown) {
         await ctx.db.patch(agent._id, { soulMarkdown: soul });
         updated++;
