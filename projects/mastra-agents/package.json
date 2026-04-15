@@ -1,0 +1,25 @@
+{
+  "name": "mastra-agents",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@ag-ui/mastra": "^1.0.1",
+    "@ai-sdk/openai-compatible": "^2.0.41",
+    "@copilotkit/runtime": "^1.55.3",
+    "@hono/node-server": "^1.19.14",
+    "@mastra/core": "^1.24.1",
+    "@mastra/hono": "^1.4.3",
+    "@mastra/mcp": "^1.4.2",
+    "@mastra/pg": "^1.9.0",
+    "@mastra/rag": "^2.2.0",
+    "ai": "^6.0.159",
+    "hono": "^4.12.12"
+  }
+}

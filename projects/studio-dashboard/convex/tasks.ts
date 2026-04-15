@@ -9,6 +9,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { validateTransition } from "./lib/stateMachine";
 import { detectCircularDelegation } from "./lib/delegation";
+import { formatTaskContext } from "./lib/formatTaskContext";
 
 /**
  * Create a goal — describe what you want, CEO agent routes it automatically.
@@ -35,11 +36,17 @@ export const createGoal = mutation({
       .unique();
     if (!user || user.role !== "owner") throw new Error("Only owners can create goals");
 
-    // Find the CEO agent
-    const ceo = await ctx.db
+    // Find the CEO agent — try Mastra ID first, fall back to Hermes ID
+    let ceo = await ctx.db
       .query("agents")
-      .withIndex("by_hermesProfileId", (q) => q.eq("hermesProfileId", "ceo"))
+      .withIndex("by_mastraAgentId", (q) => q.eq("mastraAgentId", "ceo"))
       .unique();
+    if (!ceo) {
+      ceo = await ctx.db
+        .query("agents")
+        .withIndex("by_hermesProfileId", (q) => q.eq("hermesProfileId", "ceo"))
+        .unique();
+    }
     if (!ceo) throw new Error("CEO agent not found");
 
     const threadId = crypto.randomUUID();
@@ -179,7 +186,7 @@ export const createTask = mutation({
 });
 
 /**
- * Dispatch a queued task to its assigned Hermes agent on Fly.io.
+ * Dispatch a queued task to the Mastra agent server on Fly.io.
  * Internal action — uses HTTP to call the Hermes API.
  */
 export const dispatchTask = internalAction({
@@ -200,14 +207,8 @@ export const dispatchTask = internalAction({
       return;
     }
 
-    // Check agent status
-    const agentStatus = await ctx.runQuery(internal.tasks.getAgentStatus, {
-      agentId: task.ownerAgentId,
-    });
-    if (agentStatus && agentStatus.status === "offline") {
-      console.warn("Agent offline, keeping task queued:", task.agentName);
-      return;
-    }
+    // Mastra agents are on-demand (no heartbeat check needed)
+    // TODO: remove old agentStatus offline check once Hermes is decommissioned
 
     // Transition to running
     const taskRunId = await ctx.runMutation(
@@ -219,118 +220,39 @@ export const dispatchTask = internalAction({
     );
     if (!taskRunId) return;
 
-    // Fetch thread context and brain context in parallel
-    const { callProxy } = await import("./lib/proxy");
-    const [threadEntries, brainResults] = await Promise.all([
-      ctx.runQuery(internal.tasks.getThreadEntries, { threadId: task.threadId }),
-      callProxy("/brain/query", { q: `${task.title} ${task.description}` }, 5000)
-        .then((r) => {
-          const raw = Array.isArray(r) ? r : ((r.results ?? []) as Record<string, unknown>[]);
-          return raw.slice(0, 5);
-        })
-        .catch((err) => {
-          console.warn("Brain query failed (proceeding without):", err instanceof Error ? err.message : err);
-          return [];
-        }),
-    ]);
+    // Fetch thread context for the agent prompt
+    const threadEntries = await ctx.runQuery(internal.tasks.getThreadEntries, {
+      threadId: task.threadId,
+    });
 
-    const threadContext = threadEntries
-      .map((e: { type: string; content: string }) => `[${e.type}] ${e.content}`)
-      .join("\n\n");
+    const userMessage = formatTaskContext(task, threadEntries);
 
-    // Build brain context section (capped at ~2000 tokens)
-    let brainContext = "";
-    if (brainResults.length > 0) {
-      const brainSnippets = brainResults.map((r: Record<string, unknown>) => {
-        const title = (r.title as string) || "Untitled";
-        const content = ((r.content as string) || (r.snippet as string) || "").slice(0, 400);
-        return `- ${title}: ${content}`;
-      });
-      brainContext = "\n\n## Brain Context (cross-project institutional memory)\n" + brainSnippets.join("\n");
-    }
-
-    // Build the Hermes API request
-    const hermesUrl = process.env.HERMES_API_URL;
-    const studioApiKey = process.env.STUDIO_API_KEY;
-
-    if (!hermesUrl || !studioApiKey) {
-      console.error("Missing env vars: HERMES_API_URL or STUDIO_API_KEY");
+    // Call Mastra agent server
+    // Mastra auto-generates /api/agents/{id}/generate endpoints
+    // The CEO agent has sub-agents wired up for delegation
+    const mastraUrl = process.env.MASTRA_URL;
+    if (!mastraUrl) {
+      console.error("Missing env var: MASTRA_URL");
       await ctx.runMutation(internal.tasks.markTaskFailed, {
         taskId: args.taskId,
         taskRunId,
-        errorMessage: "Server configuration error",
+        errorMessage: "Server configuration error: MASTRA_URL not set",
         errorClass: "ConfigurationError",
       });
       return;
     }
 
-    // Build instructions with STUDIO_CONTEXT for the plugin's pre_llm_call hook.
-    // The plugin extracts this metadata to fetch project context from Convex.
-    const studioContext = JSON.stringify({
-      taskRunId: taskRunId,
-      projectId: task.projectId,
-      threadId: task.threadId,
-    });
-
-    const skillInstruction = task.skillHint
-      ? `\n## Skill\nUse the /${task.skillHint} skill to complete this task. Follow all phases in the skill.\n`
-      : "";
-
-    const instructions = [
-      `<!-- STUDIO_CONTEXT: ${studioContext} -->`,
-      "",
-      // Hermes loads SOUL.md natively. We add task-specific context here.
-      "## Thread Context (previous decisions and findings)",
-      threadContext,
-      brainContext,
-      skillInstruction,
-      "## Available Agents (for delegation)",
-      "Use the delegate_to_agent tool to delegate subtasks to the right agent:",
-      "- creative-director: Visual identity, brand, design",
-      "- engineering-lead: Technical architecture, code review",
-      "- content-lead: Content strategy, writing direction",
-      "- content-writer: Blog posts, case studies, drafts",
-      "- visual-designer: UI/UX, mockups",
-      "- frontend-dev / backend-dev: Code implementation",
-      "- social-media: Social posts, publishing",
-      "- data-analyst: Data research, metrics, APIs",
-      "- qa-reviewer: Quality checks",
-      "",
-      "## Response Format",
-      "When done, respond with a JSON object:",
-      '{ "status": "completed" | "needs_approval" | "failed",',
-      '  "result": "your FULL output document — do not truncate or summarize",',
-      '  "approvalRequest": { "action": "what needs approval", "reason": "why" } }',
-      "",
-      "IMPORTANT: Include the complete deliverable in the result field.",
-      "This becomes the project artifact that Tarik reviews and downloads.",
-      "",
-      "You can use report_progress to send intermediate findings,",
-      "delegate_to_agent to assign work to other agents,",
-      "and request_approval when you need owner sign-off.",
-    ].join("\n");
-
-    // Use /v1/responses (stateful API) with named conversations matching threadId.
-    // This gives us: server-side history, multi-turn tool execution, and
-    // the agent's full toolset (web, terminal, file, memory, delegation, skills).
     try {
       const response = await fetch(
-        `${hermesUrl}/v1/responses`,
+        `${mastraUrl}/api/agents/ceo/generate`,
         {
           method: "POST",
-          headers: {
-            "Authorization": `Bearer ${studioApiKey}`,
-            "Content-Type": "application/json",
-            "X-Agent-Profile": task.hermesProfileId,
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "hermes-agent",
-            input: task.description,
-            instructions,
-            conversation: task.threadId,
-            store: true,
+            messages: [{ role: "user", content: userMessage }],
+            maxSteps: 10,
           }),
-          signal: AbortSignal.timeout(120_000), // longer timeout for tool-augmented tasks
+          signal: AbortSignal.timeout(300_000), // 5 min for multi-step research
         },
       );
 
@@ -340,63 +262,47 @@ export const dispatchTask = internalAction({
             ? "RateLimitError"
             : response.status === 503
               ? "ServiceUnavailable"
-              : "HermesApiError";
+              : "MastraApiError";
 
         await ctx.runMutation(internal.tasks.markTaskFailed, {
           taskId: args.taskId,
           taskRunId,
-          errorMessage: `Hermes returned ${response.status}: ${response.statusText}`,
+          errorMessage: `Mastra returned ${response.status}: ${response.statusText}`,
           errorClass,
         });
         return;
       }
 
-      // /v1/responses returns a stateful response with output array.
-      // The output contains tool calls, tool results, and the final message.
       const result = await response.json();
 
-      // Extract the final text output from the response
-      const outputItems = result.output ?? [];
-      const messageItem = outputItems.find(
-        (item: any) => item.type === "message" && item.role === "assistant",
-      );
-      const content = messageItem?.content?.[0]?.text
-        ?? messageItem?.content
-        ?? result.output_text
-        ?? "";
+      // Extract the final deliverable from the LAST step's text,
+      // not result.text which concatenates delegation reasoning + deliverable.
+      // Steps 0..N-1 contain "I'll delegate to..." reasoning text.
+      // The last step (finishReason: "stop") contains the actual output.
+      const steps = result.steps ?? [];
+      const lastStep = steps.length > 0 ? steps[steps.length - 1] : null;
+      const deliverable = lastStep?.text || result.text || "";
 
-      if (content) {
-        // Try to parse as structured response
-        let parsed;
-        try {
-          // Look for JSON in the content (may be wrapped in markdown code block)
-          const jsonMatch = content.match(/\{[\s\S]*"status"[\s\S]*\}/);
-          parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { status: "completed", result: content };
-        } catch {
-          parsed = { status: "completed", result: content };
-        }
+      if (deliverable) {
+        // Estimate cost from token usage
+        const usage = result.usage;
+        const costCents = usage
+          ? Math.ceil(
+              (usage.inputTokens * 1.25 + usage.outputTokens * 5.0) / 1_000_000 * 100,
+            )
+          : undefined;
 
         await ctx.runMutation(internal.callbacks.applyCallbackResult, {
           taskRunId: taskRunId as string,
-          status: parsed.status ?? "completed",
-          result: parsed.result ?? content,
-          costCents: result.usage
-            ? Math.ceil(
-                (result.usage.input_tokens * 0.003 +
-                  result.usage.output_tokens * 0.015) /
-                  1000,
-              )
-            : undefined,
-          tokenUsage: result.usage
+          status: "completed",
+          result: deliverable,
+          costCents,
+          tokenUsage: usage
             ? JSON.stringify({
-                input: result.usage.input_tokens,
-                output: result.usage.output_tokens,
+                input: usage.inputTokens,
+                output: usage.outputTokens,
               })
             : undefined,
-          approvalReason: parsed.approvalRequest?.reason,
-          errorClass: parsed.status === "failed" ? "AgentFailureError" : undefined,
-          errorMessage:
-            parsed.status === "failed" ? parsed.result : undefined,
         });
       }
     } catch (error) {
@@ -825,5 +731,137 @@ export const retryTask = mutation({
     await ctx.scheduler.runAfter(0, internal.tasks.dispatchTask, {
       taskId: args.taskId,
     });
+  },
+});
+
+/**
+ * Save deliverable from a CopilotKit interactive session.
+ * Called by the frontend on AG-UI stream completion.
+ * Dedup: if Mastra callback already saved (task is completed), skip silently.
+ * Transitions: running → completed via validateTransition.
+ */
+export const saveDeliverable = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    deliverable: v.string(),
+    costCents: v.optional(v.number()),
+    tokenUsage: v.optional(v.string()),
+    sessionId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const task = await ctx.db.get(args.taskId);
+    if (!task) throw new Error("Task not found");
+
+    // Dedup: if already completed (Mastra callback beat us), skip
+    if (task.status === "completed") {
+      return { dedup: true };
+    }
+
+    // Validate transition
+    if (task.status !== "running") {
+      throw new Error(`Cannot save deliverable: task is ${task.status}, expected running`);
+    }
+
+    // Transition to completed
+    const transition = validateTransition(task.status, "completed", task.retryCount);
+    if (!transition.valid) {
+      throw new Error(transition.reason);
+    }
+    await ctx.db.patch(args.taskId, {
+      status: "completed",
+      resultFull: args.deliverable,
+      resultSummary: args.deliverable.slice(0, 500),
+      sessionId: args.sessionId,
+    });
+
+    // Update task run if exists
+    const runs = await ctx.db
+      .query("taskRuns")
+      .withIndex("by_taskId", (q) => q.eq("taskId", args.taskId))
+      .order("desc")
+      .take(1);
+    if (runs.length > 0) {
+      await ctx.db.patch(runs[0]._id, {
+        status: "succeeded",
+        finishedAt: Date.now(),
+        costCents: args.costCents,
+        tokenUsage: args.tokenUsage,
+      });
+    }
+
+    // Auto-save document
+    if (args.deliverable.length > 0) {
+      await ctx.db.insert("documents", {
+        taskId: args.taskId,
+        projectId: task.projectId,
+        type: "research",
+        title: task.title,
+        body: args.deliverable,
+        status: "draft",
+        createdByAgent: task.ownerAgentId,
+      });
+    }
+
+    // Log event
+    await ctx.db.insert("events", {
+      taskId: args.taskId,
+      agentId: task.ownerAgentId,
+      type: "task.completed.interactive",
+      payload: JSON.stringify({ costCents: args.costCents, sessionId: args.sessionId }),
+    });
+
+    return { dedup: false };
+  },
+});
+
+/**
+ * Transition a task from queued to running for a CopilotKit interactive session.
+ * Called when Co-Work Mode mounts and CopilotKit connects.
+ */
+export const startInteractiveSession = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    sessionId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const task = await ctx.db.get(args.taskId);
+    if (!task) throw new Error("Task not found");
+
+    if (task.status !== "queued") {
+      throw new Error(`Cannot start session: task is ${task.status}, expected queued`);
+    }
+
+    const transition = validateTransition(task.status, "running", task.retryCount);
+    if (!transition.valid) {
+      throw new Error(transition.reason);
+    }
+    await ctx.db.patch(args.taskId, {
+      status: "running",
+      sessionId: args.sessionId,
+    });
+
+    // Create task run
+    const taskRunId = await ctx.db.insert("taskRuns", {
+      taskId: args.taskId,
+      agentId: task.ownerAgentId,
+      status: "running",
+      startedAt: Date.now(),
+    });
+
+    // Log event
+    await ctx.db.insert("events", {
+      taskId: args.taskId,
+      agentId: task.ownerAgentId,
+      type: "task.session.started",
+      payload: JSON.stringify({ sessionId: args.sessionId }),
+    });
+
+    return taskRunId;
   },
 });

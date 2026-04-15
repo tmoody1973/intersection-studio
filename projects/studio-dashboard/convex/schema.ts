@@ -8,8 +8,10 @@ import { v } from "convex/values";
  * Reviewed via /plan-ceo-review + /plan-eng-review (2026-04-09).
  *
  * Architecture:
- *   Browser → Next.js (Vercel) → Convex Cloud ↔ Fly.io (12 Hermes agents)
- *   Hermes calls back via POST /hermes-callback (HMAC-signed)
+ *   Browser → Next.js (Vercel) → Convex Cloud
+ *   Interactive: CopilotKit (AG-UI) → Fly.io (Mastra agents)
+ *   Background: Convex action → Fly.io (Mastra /api/agents/ceo/generate)
+ *   Mastra callback → Convex HTTP endpoint (safety net persistence)
  *
  *   ┌─────────┐     ┌──────────────┐     ┌─────────────┐
  *   │ agents  │────→│ agentStatus  │     │ users       │
@@ -64,22 +66,27 @@ export default defineSchema({
 
   /**
    * Agent profiles — stable config data.
-   * One row per agent (12 total). Seed on first deploy.
+   * Migration: Hermes → Mastra (widen phase)
+   *   - hermesProfileId: kept for rollback (will be removed in narrow phase)
+   *   - mastraAgentId: new field for Mastra agent lookup
    */
   agents: defineTable({
     name: v.string(),
-    hermesProfileId: v.string(),
+    hermesProfileId: v.optional(v.string()), // WIDEN: was required, now optional for migration
+    mastraAgentId: v.optional(v.string()),   // NEW: Mastra agent ID (e.g., "ceo", "researcher")
     description: v.string(),
     role: v.string(), // "strategic" | "execution"
     reportsTo: v.optional(v.id("agents")),
-    model: v.string(), // OpenRouter model string, e.g. "anthropic/claude-sonnet-4-20250514"
-    soulMarkdown: v.optional(v.string()), // full SOUL.md content, editable from dashboard
+    model: v.string(), // OpenRouter model string, e.g. "google/gemini-2.5-pro-preview-05-06"
+    soulMarkdown: v.optional(v.string()), // WIDEN: kept for rollback, replaced by Mastra instructions
     allowedTools: v.array(v.string()),
     delegationPermissions: v.array(v.id("agents")),
     maxDailyBudgetCents: v.number(),
     maxConcurrentTasks: v.number(),
     defaultTimeoutMinutes: v.number(),
-  }).index("by_hermesProfileId", ["hermesProfileId"]),
+  })
+    .index("by_hermesProfileId", ["hermesProfileId"])
+    .index("by_mastraAgentId", ["mastraAgentId"]),
 
   /**
    * Agent status — HIGH CHURN, separated from agents table.
@@ -119,6 +126,7 @@ export default defineSchema({
     threadId: v.string(),
     retryCount: v.number(), // 0 = first attempt, 1 = retried (max)
     skillHint: v.optional(v.string()), // e.g. "hackathon-brainstorm" — tells agent which skill to use
+    sessionId: v.optional(v.string()),
     resultSummary: v.optional(v.string()),
     resultFull: v.optional(v.string()), // full deliverable document (not truncated)
     errorMessage: v.optional(v.string()),
@@ -133,6 +141,7 @@ export default defineSchema({
   /**
    * Task runs — individual execution attempts.
    * A task may have 1-2 runs (original + 1 retry).
+   * Migration: hmacVerified now optional (Mastra doesn't use HMAC).
    */
   taskRuns: defineTable({
     taskId: v.id("tasks"),
@@ -143,13 +152,32 @@ export default defineSchema({
     tokenUsage: v.optional(v.string()), // JSON: {input, output}
     costCents: v.optional(v.number()),
     errorMessage: v.optional(v.string()),
-    resultPayload: v.optional(v.string()), // JSON: full Hermes response
-    hmacVerified: v.boolean(),
+    resultPayload: v.optional(v.string()), // JSON: full Mastra response
+    hmacVerified: v.optional(v.boolean()), // WIDEN: was required, now optional (Mastra has no HMAC)
+    evalScore: v.optional(v.number()),     // NEW: Mastra eval quality score (0-1)
+    evalDetails: v.optional(v.string()),   // NEW: JSON per-dimension eval scores
   })
     .index("by_taskId", ["taskId"])
     .index("by_agentId", ["agentId"])
     .index("by_status", ["status"])
     .index("by_status_and_startedAt", ["status", "startedAt"]),
+
+  /**
+   * Agent stream — real-time streaming events from Mastra agents.
+   * Dashboard subscribes via Convex real-time query for Co-Work Mode.
+   * Cleanup cron deletes rows older than 24 hours.
+   *
+   *   Fly.io Mastra → POST /mastra-event {type:"stream"} → agentStream table
+   *   Dashboard → useQuery(agentStream.byTask, {taskId}) → live updates
+   */
+  agentStream: defineTable({
+    taskId: v.id("tasks"),
+    event: v.string(),   // thinking | tool_call | chunk | done | error
+    data: v.string(),    // event payload (text chunk, tool name, error message)
+    timestamp: v.number(),
+  })
+    .index("by_taskId", ["taskId"])
+    .index("by_timestamp", ["timestamp"]),
 
   /**
    * Delegations — tracks who delegated to whom and why.
@@ -295,5 +323,21 @@ export default defineSchema({
     .index("by_projectId", ["projectId"])
     .index("by_status", ["status"])
     .index("by_type", ["type"])
+    .index("by_taskId", ["taskId"]),
+
+  /**
+   * Session events — normalized timeline for Co-Work Mode replay.
+   * One row per AG-UI event captured during a collaborative session.
+   * Browser accumulates events, batch-flushes to Convex on completion.
+   * Cleanup: consider cron to delete events older than 30 days.
+   */
+  sessionEvents: defineTable({
+    sessionId: v.string(),
+    taskId: v.id("tasks"),
+    eventType: v.string(), // thinking | tool_call | delegation | steering | chunk | completion | error | cost_update
+    data: v.string(),      // JSON payload for this event
+    timestamp: v.number(),
+  })
+    .index("by_session_and_time", ["sessionId", "timestamp"])
     .index("by_taskId", ["taskId"]),
 });

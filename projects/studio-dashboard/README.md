@@ -1,15 +1,15 @@
 # Studio Dashboard
 
-> Intersection Studio's deliverable factory. Type a goal, 12 AI agents produce the document, copy it into Claude Code to build.
+> Intersection Studio's collaborative intelligence workspace. Type a goal, watch AI agents think in real-time, steer mid-task, get a deliverable. Copy it into Claude Code to build.
 
 **Live:** [studio-dashboard-eta.vercel.app](https://studio-dashboard-eta.vercel.app)
-**Agents:** [intersection-studio.fly.dev/health](https://intersection-studio.fly.dev/health)
+**Agents:** [intersection-mastra.fly.dev/health](https://intersection-mastra.fly.dev/health)
 
 ## What This Is
 
-A product architect's workspace for running a 20-product studio with AI agents. Type a goal ("write a case study for Crate"), the CEO agent decomposes and delegates it to the right specialist, and a finished document comes back. Click "Copy for Claude Code" to hand it off for construction.
+A product architect's workspace for running a 20-product studio with AI agents. Type a goal ("research the competitive landscape for DJ tools"), enter Co-Work Mode, and collaborate with the CEO agent in real-time. Watch it think, query the institutional brain, delegate to specialists, and produce a document... all streaming in front of you. Steer at any point. Copy the deliverable into Claude Code for construction.
 
-12 [Hermes Agent](https://github.com/NousResearch/hermes-agent) profiles on Fly.io, wrapped in a Next.js + Convex + Clerk control plane. Agents have real tools (web search, terminal, file ops, delegation). Every deliverable is auto-saved. Every decision becomes institutional memory.
+5 Mastra agents on Fly.io (CEO supervisor + Researcher, Writer, Social Media, Data Analyst), connected to a Neon pgvector brain with 3,747 pages of institutional knowledge. CopilotKit + AG-UI protocol for real-time streaming. Convex for persistence and real-time subscriptions.
 
 The dashboard is the Architecture Firm. Claude Code is the General Contractor.
 
@@ -19,142 +19,105 @@ Built for [Tarik Moody](https://tarikmoody.com)'s AfroTech 2026 talk: "Your Expe
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | Next.js 16, React 19, Satoshi + Cabinet Grotesk |
-| Backend | Convex (11 tables, real-time subscriptions, crons) |
+| Frontend | Next.js 16, React 19, CopilotKit (AG-UI protocol) |
+| Backend | Convex (15 tables, real-time subscriptions, crons) |
 | Auth | Clerk (JWT, RBAC with owner/viewer roles) |
-| Agents | [Hermes Agent](https://hermes-agent.nousresearch.com/docs) on Fly.io (12 profiles, OpenRouter) |
-| Plugin | studio-dashboard ([plugin docs](https://hermes-agent.nousresearch.com/docs/guides/build-a-hermes-plugin), bridges Hermes ↔ Convex) |
-| Skills | 9 Bumwad methodology skills ([skill docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills)) |
+| Agents | [Mastra](https://mastra.ai) on Fly.io (5 agents, supervisor pattern, OpenRouter) |
+| Brain | Neon pgvector (institutional knowledge, 3,747 pages) |
 | Deploy | Vercel (dashboard) + Fly.io (agents) |
 
 ## Architecture
 
 ```
-YOUR BROWSER                        FLY.IO (Chicago, shared-cpu-4x, 8GB)
-┌─────────────────────┐             ┌──────────────────────────────────┐
-│                     │             │  Routing Proxy (:3000)           │
-│  Next.js Dashboard  │             │    → 12 Hermes gateways         │
-│  (Vercel)           │             │                                  │
-│                     │  /v1/       │  CEO (:8650)         Sonnet 4   │
-│  4 Routes:          │  responses  │  Creative Dir (:8651) Sonnet 4  │
-│  / Overview         │ ──────────→ │  Eng Lead (:8652)    Sonnet 4   │
-│  /agents Editor     │             │  Content Lead (:8653) Sonnet 4  │
-│  /tasks Kanban      │             │  Project Mgr (:8654) Sonnet 4   │
-│  /settings          │             │  Visual Des (:8655)  Sonnet 4   │
-│                     │             │  Frontend (:8656)    Llama 3.3  │
-│  Clerk Auth         │             │  Backend (:8657)     Llama 3.3  │
-│  Convex Client      │             │  Writer (:8658)      Llama 3.3  │
-└─────────────────────┘             │  Social (:8659)      Llama 3.3  │
-                                    │  QA (:8660)          Llama 3.3  │
-CONVEX CLOUD                        │  Data (:8661)        Llama 3.3  │
-┌────────────────────────────────┐  │                                  │
-│ agents, agentStatus, tasks,    │  │  Plugin: studio-dashboard        │
-│ taskRuns, projects,            │  │   pre_llm_call → inject context  │
-│ projectSources, delegations,   │  │   post_tool_call → log to Convex│
-│ events, approvals,             │  │   tools: read_sources, approval, │
-│ threadEntries, users,          │  │          report_progress         │
-│ modelCache                     │  │                                  │
-│                                │  │  Skills: /research-brief,        │
-│ /hermes-callback  (HMAC)      │  │   /eng-review, /linkedin-post... │
-│ /project-context  (plugin)    │  │                                  │
-│ /hermes-tool-log  (plugin)    │  │  OpenRouter (one API key, 200+   │
-│ /hermes-progress  (plugin)    │  │   models)                        │
-└────────────────────────────────┘  └──────────────────────────────────┘
+YOUR BROWSER                         FLY.IO (Mastra Server)
+┌────────────────────────────────┐   ┌──────────────────────────────┐
+│                                │   │                              │
+│  Next.js Dashboard (Vercel)    │   │  /chat (CopilotKit/AG-UI)   │
+│                                │   │    CEO Agent (Sonnet)        │
+│  Co-Work Mode (/tasks/[id]/    │   │      ├→ Researcher          │
+│    cowork)                     │   │      ├→ Writer               │
+│    ├ CopilotChat (40%)         │   │      ├→ Social Media         │
+│    │  Agent thinking           │   │      └→ Data Analyst         │
+│    │  Brain cards              │   │                              │
+│    │  Delegation viz           │   │  /api/agents/ceo/generate    │
+│    │  Steering input           │   │    (background execution)    │
+│    ├ ArtifactPanel (60%)       │   │                              │
+│    │  Document forming live    │   │  Brain tools (Neon pgvector) │
+│    │  Copy for Claude Code     │   │  Bearer token auth           │
+│    └ Timeline (Phase 3)        │   │                              │
+│                                │   └──────────────┬───────────────┘
+│  Home (/) — Goal input         │                  │ callback
+│    → Co-Work Mode              │                  │ (safety net)
+│    → or background dispatch    │                  │
+│                                │                  ▼
+└──────────┬─────────────────────┘   
+           │ persist                 CONVEX CLOUD
+           ▼                         ┌──────────────────────────────┐
+                                     │ tasks, taskRuns, agents,     │
+                                     │ agentStatus, documents,      │
+                                     │ sessionEvents, events,       │
+                                     │ projects, projectSources,    │
+                                     │ threadEntries, approvals,    │
+                                     │ delegations, users,          │
+                                     │ chatMessages, modelCache,    │
+                                     │ agentStream (deprecated)     │
+                                     └──────────────────────────────┘
 ```
+
+### Dual Execution Paths
+
+**Interactive (Co-Work Mode):** CopilotKit connects to Mastra via AG-UI. Agent thinking streams in real-time. User steers mid-task. Frontend persists deliverable on completion. Mastra callback provides safety net persistence (survives tab close).
+
+**Background (dispatchTask):** Convex action POSTs to Mastra `/api/agents/ceo/generate`. Agent runs autonomously. Callback returns result to Convex. Used for scheduled tasks and non-interactive execution.
 
 ## Dashboard Pages
 
-### Home (`/`) -- Goal-First Workspace
-- **Hero goal input**: "What do you want to work on?" -- dispatches to CEO agent via Paperclip-style delegation
-- **Recent Documents**: auto-saved deliverables from completed agent tasks
-- **Type reclassification**: dropdown to label documents (Case Study, Social Post, PRD, Design Doc, Research)
-- **"Copy for Claude Code"**: one-click clipboard with structured markdown payload for handoff to Claude Code
-- Error states: agent offline, no documents, working on it (pulse animation)
+### Home (`/`) — Goal-First Workspace
+- Hero goal input: "What do you want to work on?"
+- Submitting a goal creates a task and navigates to Co-Work Mode
+- Recent documents with type badges and "Copy for Claude Code"
+- Quick action buttons: Research, Write, Social, Analyze
 
-### Chat (`/chat`) -- Agent Conversations
-- Direct conversations with any of the 12 agents
-- Agent picker sidebar with online/offline status
-- Project-scoped context injection (agents see project sources, thread history, plans)
-- Conversation history persisted in Convex
-- Like working in Claude Code, but with your AI team
+### Co-Work Mode (`/tasks/[id]/cowork`) — Collaborative Workspace
+- **Split view:** CopilotChat (40%) + ArtifactPanel (60%)
+- Agent thinking, brain cards, delegation visualization in the chat panel
+- Document forms live in the artifact panel
+- Mid-task steering: type "focus on pricing" and the agent adjusts
+- Cost ticker: live token/cost counter
+- Smart "Copy for Claude Code": structured prompt with task context + reasoning + deliverable
+- **Replay mode:** completed tasks show a read-only timeline of the session
+- **Responsive:** stacks on mobile (<768px)
 
-### Tasks (`/tasks`) -- Kanban Board
-- 5 columns: Queued, Running, Waiting Approval, Completed, Failed
-- Medium density cards: title, agent, priority badge, elapsed time, cost
-- Click card for detail panel: description, thread, run history, result
-- **+ New Task** button to create and dispatch tasks to agents
-- Download result as `.md`, export thread for Claude Code handoff
-- Archive completed tasks, delete with confirmation
-- Filtered by sidebar project selection
+### Tasks (`/tasks`) — Task Board
+- Queued, Running, Waiting Approval, Completed, Failed columns
+- Task cards with agent, priority, elapsed time, cost
+- Click for detail panel with thread, run history, result
 
-### Agents (`/agents`) -- Agent Editor
-- Org chart grid (CEO → leads → ICs), click to open editor
-- **Soul tab**: edit agent personality (SOUL.md), Cmd+S save, preview toggle
-- **Skills tab**: add/remove allowed tools
-- **Config tab**: model picker, daily budget, concurrency, timeout, delegation permissions, reporting hierarchy
+### Projects (`/projects`) — Bumwad Methodology
+- Projects follow phases: Research → Schematic → Design Dev → Refinement → Construction → Complete
+- NotebookLM-style source library per project
+- Institutional memory via thread entries
 
-### Settings (`/settings`)
-- Placeholder for future app configuration
+### Team (`/team`) — Agent Profiles
+- Agent org chart (CEO → specialists)
+- Status, current tasks, daily spend per agent
 
-## Projects & Sources
-
-Projects follow the Bumwad methodology (Research → Schematic → Design Dev → Refinement → Construction → Complete). Each project has:
-
-- **Sources** -- NotebookLM-style reference library (text, URLs, uploaded files)
-- **Thread** -- institutional memory built from agent findings, decisions, artifacts
-- **Phase** -- current Bumwad stage, affects which skills agents use
-
-Sources are injected into agent context via the studio-dashboard plugin's `pre_llm_call` hook. Each task in a project shares the same thread, so Agent B sees Agent A's results.
-
-## Hermes Plugin
-
-The `studio-dashboard` [Python plugin](https://hermes-agent.nousresearch.com/docs/guides/build-a-hermes-plugin) bridges Hermes agents with the Convex backend:
-
-| Component | Purpose |
-|-----------|---------|
-| `pre_llm_call` hook | Injects project sources + thread context before each LLM turn |
-| `post_tool_call` hook | Logs every tool use to the Convex activity feed |
-| `on_session_end` hook | Sends completion callback if session ends |
-| `read_project_sources` tool | Agents fetch project reference material from Convex |
-| `request_approval` tool | Agents request owner approval (60-min expiry) |
-| `report_progress` tool | Agents send intermediate findings mid-task |
-
-See [docs/hermes-integration.md](docs/hermes-integration.md) for full integration architecture.
-
-## Bumwad Skills
-
-Methodology encoded as [Hermes skills](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills) (SKILL.md files):
-
-| Skill | Phase | Purpose |
-|-------|-------|---------|
-| `/research-brief` | Research | Domain exploration, competitive analysis |
-| `/schematic-review` | Schematic | CEO review of rough concept |
-| `/design-development` | Design Dev | Detailed specs, PRDs, schema design |
-| `/eng-review` | Design Dev | 7-pass engineering review protocol |
-| `/construction-handoff` | Construction | Produce Claude Code-ready PLAN.md |
-| `/linkedin-post` | Any | Draft post in Tarik's voice |
-| `/case-study` | Complete | Product retrospective |
-| `/cost-report` | Any | Agent cost analysis |
-| `/status-report` | Any | Weekly rollup |
+### Brain (`/brain`) — Institutional Knowledge
+- Search across 3,747 pages of studio knowledge
+- Neon pgvector semantic search via Convex action
 
 ## Task Lifecycle
 
 ```
-         create task
-              │
-              ▼
-           Queued ──── dispatch to Hermes ────→ Running
-              │                                    │
-              │                              ┌─────┼─────┐
-              │                              ▼     ▼     ▼
-              │                        Completed  Failed  Waiting
-              │                           │        │     Approval
-              │                           │     retry    │    │
-              │                           │     (1x)  approve reject
-              │                           │        │     │     │
-              │                        Archive  Queued  Done  Failed
-              │
-           Cancel ──→ Cancelled ──→ Archive or Delete
+create goal (home)
+      │
+      ├──── interactive ────→ Co-Work Mode ──→ streaming ──→ steer ──→ complete
+      │     (navigate)         (CopilotKit)     (AG-UI)                  │
+      │                                                            save deliverable
+      │                                                          (frontend + callback)
+      │
+      └──── background ─────→ dispatchTask ──→ Mastra ──→ callback ──→ complete
+            (scheduled)
 ```
 
 ## Running Locally
@@ -163,7 +126,7 @@ Methodology encoded as [Hermes skills](https://hermes-agent.nousresearch.com/doc
 cd projects/studio-dashboard
 npm install
 cp .env.local.example .env.local
-# Add your Clerk + Convex keys to .env.local
+# Add Clerk + Convex + Mastra keys to .env.local
 npx convex dev    # Start Convex backend
 npm run dev       # Start Next.js on :3000
 ```
@@ -176,26 +139,24 @@ npm run dev       # Start Next.js on :3000
 |----------|-------------|
 | `CONVEX_DEPLOYMENT` | Convex deployment identifier |
 | `NEXT_PUBLIC_CONVEX_URL` | Convex cloud URL |
-| `NEXT_PUBLIC_CONVEX_SITE_URL` | Convex HTTP endpoint URL |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk frontend key |
 | `CLERK_SECRET_KEY` | Clerk backend key |
+| `NEXT_PUBLIC_MASTRA_URL` | Mastra server URL (default: https://intersection-mastra.fly.dev) |
+| `NEXT_PUBLIC_COPILOTKIT_API_KEY` | Bearer token for CopilotKit/AG-UI auth |
 
 ### Convex (set via `npx convex env set`)
 
 | Variable | Description |
 |----------|-------------|
-| `HERMES_API_URL` | Fly.io Hermes gateway URL |
-| `STUDIO_API_KEY` | Shared auth token (must match Fly.io) |
-| `HERMES_CALLBACK_SECRET` | HMAC signing secret (must match Fly.io) |
+| `MASTRA_URL` | Fly.io Mastra server URL |
 
-### Fly.io (set via `fly secrets set`)
+### Fly.io (set via `fly secrets set` in mastra-agents)
 
 | Variable | Description |
 |----------|-------------|
 | `OPENROUTER_API_KEY` | LLM access via OpenRouter |
-| `STUDIO_API_KEY` | Shared auth token (must match Convex) |
-| `HERMES_CALLBACK_SECRET` | HMAC signing secret (must match Convex) |
-| `CONVEX_SITE_URL` | Convex HTTP endpoint for plugin callbacks |
+| `COPILOTKIT_API_KEY` | Bearer token for /chat and /api/* auth |
+| `NEON_CONNECTION_STRING` | Neon pgvector brain database |
 
 ## Deploying
 
@@ -208,95 +169,22 @@ vercel --prod
 ### Agents to Fly.io
 
 ```bash
-cd deploy
-fly deploy
-
-# Force re-setup (after changing souls, skills, or plugin):
-fly ssh console -a intersection-studio -C "rm -f /opt/data/.setup-complete-v2"
-fly machine restart <machine-id> -a intersection-studio
+cd ../mastra-agents
+fly deploy -a intersection-mastra
 ```
 
 ### Verify
 
 ```bash
-# All agents online
-curl -s https://intersection-studio.fly.dev/health | python3 -m json.tool
+# Agents healthy
+curl -s https://intersection-mastra.fly.dev/health | python3 -m json.tool
 
-# Plugin tools registered
-curl -s -X POST https://intersection-studio.fly.dev/v1/chat/completions \
-  -H "Authorization: Bearer $STUDIO_API_KEY" \
-  -H "Content-Type: application/json" \
-  -H "X-Agent-Profile: ceo" \
-  -d '{"model":"hermes-agent","messages":[{"role":"user","content":"List your tools"}]}'
+# CopilotKit route responds
+curl -s -X POST https://intersection-mastra.fly.dev/chat \
+  -H "Authorization: Bearer $COPILOTKIT_API_KEY" \
+  -H "Content-Type: application/json"
 ```
 
-## Project Structure
+## Design System
 
-```
-convex/
-  schema.ts            12 tables with indexes + search index
-  tasks.ts             createGoal, createTask, dispatchTask, listForKanban, cancel, retry, archive, delete
-  documents.ts         list, get, create (idempotent), updateType, updateStatus, listRecent
-  documents.test.ts    25 tests (status transitions, clipboard format, auto-save logic, type labels)
-  callbacks.ts         HMAC verify + apply result (state machine) + auto-save to documents
-  chat.ts              sendMessage (proxied to Hermes), conversation history, project context
-  agents.ts            listWithStatus, getAgent, updateSoul, updateConfig, updateTools, updateModel
-  approvals.ts         listPending, resolve (guarded)
-  events.ts            listRecent (activity feed)
-  costs.ts             breakdown (per-agent cost tracking)
-  threads.ts           search (full-text, Cmd+K)
-  projects.ts          list, get, create, advancePhase, storePlan
-  projectSources.ts    addText, addUrl, addFile, generateUploadUrl, remove
-  pluginEndpoints.ts   getProjectContext, logToolUsage, reportProgress
-  heartbeat.ts         health checks, timeout enforcement, approval expiry
-  crons.ts             heartbeat (2min), daily spend reset, model refresh
-  migrations.ts        populateSouls, backfillDocuments (batched, one-time)
-  seed.ts              12 agent profiles with org hierarchy
-  users.ts             ensureUser, currentUser (RBAC)
-  http.ts              /hermes-callback, /project-context, /hermes-tool-log, /hermes-progress
-  lib/
-    stateMachine.ts    validateTransition + shouldRetry
-    hmac.ts            Web Crypto HMAC-SHA256 verification
-    delegation.ts      circular delegation detection
-
-src/app/
-  layout.tsx           Clerk + Convex providers
-  globals.css          Design system tokens + animations
-  (dashboard)/
-    layout.tsx         Sidebar + header + auth gate + project context
-    page.tsx           Goal-First home (goal input, recent documents, Copy for Claude Code)
-    chat/page.tsx      Agent chat (agent picker, conversation history, project context)
-    agents/page.tsx    Agent grid + editor panel (Soul, Skills, Config tabs)
-    tasks/page.tsx     Kanban board + task detail panel + create task modal
-    settings/page.tsx  Settings placeholder
-
-src/components/
-  dashboard/           OrgChart, KpiRow, ActivityFeed, ApprovalOverlay,
-                       CommandPalette, CostDashboard, PresentationToggle,
-                       ProjectList, CreateProjectModal
-  layout/              Sidebar (5 routes: Overview, Chat, Agents, Tasks, Settings)
-  providers/           ConvexClientProvider, ProjectContext
-
-deploy/
-  fly.toml             Fly.io config (ord, 4x CPU, 8GB RAM)
-  Dockerfile           Hermes + Node.js + souls + skills + plugin
-  souls/               12 SOUL.md files (one per agent)
-  skills/              9 Bumwad methodology + content + ops skills
-  plugins/             studio-dashboard Python plugin
-  scripts/
-    start.sh           Profile setup + plugin install + gateway startup
-    proxy.mjs          Streaming HTTP proxy (port 3000 → 12 gateways, 30s keep-alive for Fly.io)
-
-docs/
-  plans/               Design documents
-  hermes-integration.md  Full integration architecture
-  how-to-use.md        User guide for operating the dashboard
-  test-playbook.md     15-test validation playbook
-```
-
-## Documentation
-
-- [How to Use](docs/how-to-use.md) -- user guide for the dashboard
-- [Hermes Integration](docs/hermes-integration.md) -- plugin, skills, toolsets, API, memory
-- [Test Playbook](docs/test-playbook.md) -- 15 tests to validate the full workflow
-- [Design Document](docs/plans/2026-04-09-dashboard-v2-design.md) -- v2 design decisions
+See [DESIGN.md](DESIGN.md) for the full token system: colors, typography, spacing, agent accent colors, responsive breakpoints, and accessibility specs.
