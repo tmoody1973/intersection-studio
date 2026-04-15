@@ -247,7 +247,10 @@ export const dispatchTask = internalAction({
         `${mastraUrl}/api/agents/ceo/generate`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.COPILOTKIT_API_KEY ?? ""}`,
+          },
           body: JSON.stringify({
             messages: [{ role: "user", content: userMessage }],
             maxSteps: 10,
