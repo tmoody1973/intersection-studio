@@ -18,6 +18,7 @@ import {
   Clock,
   MessageSquare,
   FileText,
+  LayoutGrid,
 } from "lucide-react";
 import { SmartCopy } from "./SmartCopy";
 import { CostTicker } from "./CostTicker";
@@ -194,6 +195,14 @@ export default function CoWorkMode() {
                 ? <Volume2 size={16} color="#f59e0b" />
                 : <VolumeX size={16} color="#555" />
               }
+            </button>
+            {/* Canvas toggle */}
+            <button
+              onClick={() => router.push(`/tasks/${taskId}/cowork/canvas`)}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}
+              aria-label="Canvas view"
+            >
+              <LayoutGrid size={16} color="#555" />
             </button>
           </div>
         </div>
