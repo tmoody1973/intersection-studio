@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useProjectContext } from "@/components/providers/ProjectContext";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
 const COLUMNS = [
@@ -179,6 +180,38 @@ function TaskCard({
           )}
         </div>
       </div>
+
+      {/* Co-Work / Replay link for active and completed tasks */}
+      {(task.status === "running" || task.status === "queued") && (
+        <a
+          href={`/tasks/${task._id}/cowork`}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+            padding: "6px 0", marginTop: 2,
+            background: "#f59e0b20", border: "1px solid #f59e0b40", borderRadius: 8,
+            color: "#f59e0b", fontSize: 12, fontWeight: 600,
+            textDecoration: "none",
+          }}
+        >
+          Co-Work
+        </a>
+      )}
+      {task.status === "completed" && (
+        <a
+          href={`/tasks/${task._id}/cowork`}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+            padding: "6px 0", marginTop: 2,
+            background: "#10b98120", border: "1px solid #10b98140", borderRadius: 8,
+            color: "#10b981", fontSize: 12, fontWeight: 600,
+            textDecoration: "none",
+          }}
+        >
+          Replay
+        </a>
+      )}
     </button>
   );
 }
