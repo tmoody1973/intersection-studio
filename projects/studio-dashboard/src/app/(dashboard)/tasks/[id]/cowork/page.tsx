@@ -5,7 +5,7 @@ import { api } from "../../../../../../convex/_generated/api";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
-import { CopilotKit } from "@copilotkit/react-core";
+import { CopilotKit, useCopilotChat } from "@copilotkit/react-core";
 import { CopilotChat } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 import {
@@ -25,6 +25,7 @@ import { CostTicker } from "./CostTicker";
 import { AgentAvatar, DelegationFlow } from "./AgentAvatar";
 import { BrainCard, BrainCardEmpty } from "./BrainCard";
 import { TimelineScrubber, ReplayTimeline } from "./TimelineScrubber";
+import { AgentStatusBar } from "./AgentStatus";
 
 /**
  * Co-Work Mode — CopilotKit-powered collaborative agent workspace.
@@ -206,6 +207,9 @@ export default function CoWorkMode() {
             </button>
           </div>
         </div>
+
+        {/* Agent activity status — shows when agent is processing */}
+        <AgentStatusBar />
 
         {/* Mobile tab bar */}
         <div className="cowork-mobile-tabs" style={{
