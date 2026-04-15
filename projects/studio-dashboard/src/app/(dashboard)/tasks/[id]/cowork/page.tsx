@@ -26,6 +26,7 @@ import { AgentAvatar, DelegationFlow } from "./AgentAvatar";
 import { BrainCard, BrainCardEmpty } from "./BrainCard";
 import { TimelineScrubber, ReplayTimeline } from "./TimelineScrubber";
 import { AgentStatusBar } from "./AgentStatus";
+import { ArtifactPanel } from "./ArtifactPanel";
 
 /**
  * Co-Work Mode — CopilotKit-powered collaborative agent workspace.
@@ -261,42 +262,16 @@ export default function CoWorkMode() {
             />
           </div>
 
-          {/* RIGHT: Artifact Panel */}
+          {/* RIGHT: Artifact Panel — reads from CopilotKit chat messages */}
           <div className="cowork-artifact-panel" style={{
             display: "flex", flexDirection: "column",
-            overflow: "hidden", position: "relative",
+            overflow: "hidden",
           }}>
-            <div style={{ flex: 1, overflow: "auto", padding: "24px 32px" }}>
-              {currentDeliverable ? (
-                <div style={{ fontSize: 16, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                  {currentDeliverable}
-                </div>
-              ) : (
-                <div style={{ display: "grid", placeItems: "center", height: "100%", color: "#555" }}>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{
-                      width: "100%", maxWidth: 400, height: 200,
-                      background: "repeating-linear-gradient(0deg, transparent, transparent 19px, #2a2a2a 19px, #2a2a2a 20px)",
-                      opacity: 0.3, marginBottom: 16,
-                    }} />
-                    <p style={{ fontSize: 14 }}>Your document will appear here</p>
-                    <p style={{ fontSize: 12, marginTop: 4 }}>The agent is working on your request</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Smart Copy — fixed bottom-right */}
-            {currentDeliverable && (
-              <div style={{ position: "absolute", bottom: 16, right: 16 }}>
-                <SmartCopy
-                  taskTitle={task.title}
-                  deliverable={currentDeliverable}
-                  sessionId={sessionId}
-                  agentNotes={agentNotes}
-                />
-              </div>
-            )}
+            <ArtifactPanel
+              taskTitle={task.title}
+              sessionId={sessionId}
+              taskResultFull={task.resultFull}
+            />
           </div>
         </div>
 
