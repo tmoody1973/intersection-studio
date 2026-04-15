@@ -23,6 +23,7 @@ import { SmartCopy } from "./SmartCopy";
 import { CostTicker } from "./CostTicker";
 import { AgentAvatar, DelegationFlow } from "./AgentAvatar";
 import { BrainCard, BrainCardEmpty } from "./BrainCard";
+import { TimelineScrubber, ReplayTimeline } from "./TimelineScrubber";
 
 /**
  * Co-Work Mode — CopilotKit-powered collaborative agent workspace.
@@ -152,6 +153,11 @@ export default function CoWorkMode() {
               />
             </div>
           )}
+          {/* Session timeline replay */}
+          <div style={{ marginTop: 32, borderTop: "1px solid #2a2a2a", paddingTop: 16 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Session Timeline</h3>
+            <ReplayTimeline taskId={taskId} />
+          </div>
         </div>
       </div>
     );
@@ -280,6 +286,9 @@ export default function CoWorkMode() {
             )}
           </div>
         </div>
+
+        {/* Timeline scrubber — bottom bar */}
+        <TimelineScrubber taskId={taskId} sessionId={sessionId} />
       </div>
 
       {/* CopilotKit dark theme + responsive overrides */}
