@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, ListTodo, Settings } from "lucide-react";
+import { LayoutDashboard, Users, ListTodo, Settings, Sparkles } from "lucide-react";
 import { ProjectList } from "@/components/dashboard/ProjectList";
 import { useProjectContext } from "@/components/providers/ProjectContext";
 import type { LucideIcon } from "lucide-react";
 
 const NAV_ITEMS: Array<{ label: string; icon: LucideIcon; href: string }> = [
   { label: "Overview", icon: LayoutDashboard, href: "/" },
-  { label: "Tasks", icon: ListTodo, href: "/tasks" },
+  { label: "Co-Work", icon: Sparkles, href: "/tasks" },
   { label: "Team", icon: Users, href: "/team" },
   { label: "Settings", icon: Settings, href: "/settings" },
 ];
