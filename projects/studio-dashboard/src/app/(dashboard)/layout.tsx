@@ -54,7 +54,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               marginBottom: "var(--space-6)",
             }}
           >
-            Multi-agent creative control room
+            Where culture meets technology. 20 products shipped with AI agents.
           </p>
           <SignInButton mode="modal">
             <button
@@ -108,7 +108,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   margin: 0,
                 }}
               >
-                Control Room
+                Intersection Studio
               </h1>
               <p
                 style={{
@@ -117,7 +117,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   margin: "0.25rem 0 0",
                 }}
               >
-                12 agents standing by
+                5 agents, collaborative workspace
               </p>
             </div>
             <div

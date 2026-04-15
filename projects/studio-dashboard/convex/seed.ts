@@ -1,23 +1,18 @@
 import { internalMutation } from "./_generated/server";
 
 /**
- * Seed the 12 Hermes agent profiles.
+ * Seed agent profiles.
  * Run once via Convex dashboard or `npx convex run seed:seedAgents`.
  *
- * Agent hierarchy:
- *   CEO
- *   ├── Creative Director
- *   │   ├── Visual Designer
- *   │   └── Social Media
- *   ├── Engineering Lead
- *   │   ├── Frontend Dev
- *   │   └── Backend Dev
- *   ├── Content Lead
- *   │   ├── Content Writer
- *   │   └── (Social Media also reports here)
- *   └── Project Manager
- *       ├── QA Reviewer
- *       └── Data Analyst
+ * Current architecture: 5 Mastra agents (supervisor pattern)
+ *   CEO (supervisor, Sonnet)
+ *   ├── Researcher (Gemini 3.1 Pro)
+ *   ├── Writer (Sonnet)
+ *   ├── Social Media (Gemini 3.1 Pro)
+ *   └── Data Analyst (Gemini 3.1 Pro)
+ *
+ * Legacy: 12 Hermes agent profiles still in DB for backward compat.
+ * New tasks use mastraAgentId, not hermesProfileId.
  */
 
 interface AgentDef {

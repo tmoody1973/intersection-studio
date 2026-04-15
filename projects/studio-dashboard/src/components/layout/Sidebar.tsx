@@ -76,7 +76,7 @@ export function Sidebar() {
               fontSize: "var(--text-xs)",
             }}
           >
-            Control Room
+            Studio Workspace
           </div>
         </div>
       </div>
