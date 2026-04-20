@@ -2,6 +2,28 @@
 
 ---
 
+## 2026-04-20
+
+**Project:** Studio Dashboard (Intersection Studio OS)
+**Sprint:** April 15 — CopilotKit + AG-UI integration (13 commits)
+
+- **Co-Work Mode shipped** — real-time collaborative agent sessions replace fire-and-forget; CopilotKit connects to Mastra via AG-UI protocol for streaming, steering, and visible reasoning
+- **Co-Work Mode UI:** 40/60 split view with live artifact panel; agent avatars with per-role accent colors; brain cards showing what context loaded pre-response; cost ticker; mobile support
+- **Session timeline scrubber + Replay Mode** — any completed task session is replayable step by step; `sessionEvents` table normalizes one row per event in Convex
+- **Canvas Copilot prototype** — TLDraw spatial session visualization added as an experimental view (committed but research stage)
+- **Sound design** — Web Audio API cues for agent start, complete, and error events; toggle-able from Co-Work Mode
+- **Artifact panel fixed** — was showing empty because deliverable state was never updating; now reads live from CopilotKit's `visibleMessages` with blinking cursor while generating
+- **Agent status bar** — elapsed timer with escalating feedback: hint at 10s, red warning at 90s, green flash on completion; solves "is it working or did it fail?" UX problem
+- **Branding transition complete** — Hermes-era labels removed; UI updated to Mastra + CopilotKit identity (5 Mastra agents, not 12 Hermes profiles)
+- **Backend:** Mastra `/chat` CopilotKit route via AG-UI; bearer token auth middleware; dynamic CORS for Vercel preview deploys; `saveDeliverable` with dedup; `startInteractiveSession` state machine mutation
+- **Smart Copy** — formats agent output as a structured prompt for Claude Code handoff; one-click
+- **Dev Diary #019** published: "The Agents Learn to Talk" — documents the architectural shift from fire-and-callback to collaborative streaming
+- **DESIGN.md published** — color tokens, typography, spacing scale, and per-agent accent color system committed to repo
+- No commits April 16–20 — integration/review period; Tarik likely evaluating Co-Work Mode in practice before next build phase
+- **Next:** investigate `useCoAgent` shared state in CopilotKit + Mastra for true bidirectional generative UI (noted in commit message as deferred); Canvas Copilot needs deeper research before shipping
+
+---
+
 ## 2026-04-14
 
 - No commits today — quiet day after the April 12 sprint
