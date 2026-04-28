@@ -2,6 +2,21 @@
 
 ---
 
+## 2026-04-28
+
+- No commits today or since the April 20 daily log — 8-day quiet period following the Co-Work Mode sprint
+- **Studio Dashboard** remains the active project; last significant build was CopilotKit + AG-UI integration (13 commits, April 15–20)
+- Co-Work Mode is live but unvalidated in practice — open question from April 20 log: does watching agents work in real time change decisions, or is it trust-building theater?
+- **P1 backlog items still open:** HMAC replay protection, prompt injection hardening — both gated on Fly.io deployment of Mastra backend
+- **P2 backlog items still open:** dead-letter queue for failed callbacks, thread compaction at 500+ entries, TOCTOU fix for concurrent delegation
+- `useCoAgent` shared state (bidirectional generative UI) deferred from April 20 sprint — flagged as next research task in commit message
+- Canvas Copilot (TLDraw spatial session visualization) committed but still in research stage — no ship decision made
+- **MKE Dashboard** open items unchanged: Housing tab split decision pending, Hmong translation review needed, no deployment yet
+- LinkedIn posts from April 14 and April 20 remain unpublished pending Tarik's review and approval
+- Next decision needed: resume Studio Dashboard hardening, explore `useCoAgent`, or pivot to a new project
+
+---
+
 ## 2026-04-20
 
 **Project:** Studio Dashboard (Intersection Studio OS)
