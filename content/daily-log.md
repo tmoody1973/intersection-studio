@@ -2,6 +2,26 @@
 
 ---
 
+## 2026-04-30
+
+- No commits today or since the April 28 daily log — 2-day quiet period continues
+- **Studio Dashboard** remains the active project; last build sprint was Co-Work Mode (April 15–20, 13 commits)
+- Co-Work Mode (CopilotKit + AG-UI) shipped and committed but has not been validated in practice — real-use feedback is the missing data point
+- `useCoAgent` shared state (true bidirectional generative UI) deferred from April 20 sprint — still flagged as next research task
+- **Canvas Copilot** (TLDraw spatial visualization) committed as prototype; no ship decision made
+- **P1 security items unchanged:** HMAC replay protection and prompt injection hardening both gated on Fly.io deployment of Mastra backend — no progress
+- **P2 reliability items unchanged:** dead-letter queue, TOCTOU fix, thread compaction all still open in TODOS.md
+- **MKE Dashboard** open items persist: Housing tab split decision, Hmong translation review, no deployment
+- LinkedIn posts from April 14 and April 20 still unpublished pending Tarik's review
+- **Next decision needed:** resume Studio Dashboard hardening, investigate `useCoAgent`, or start a new project — no signal yet on direction
+
+**Items needing attention:**
+- Fly.io deployment of Mastra backend is the blocker for all P1 security work — this needs to ship before the dashboard is used beyond single-user
+- Canvas Copilot needs a ship/kill decision — prototype has been committed but sits without a next step
+- April 14 and April 20 LinkedIn posts: both drafted, neither published — needs Tarik's eye
+
+---
+
 ## 2026-04-28
 
 - No commits today or since the April 20 daily log — 8-day quiet period following the Co-Work Mode sprint
