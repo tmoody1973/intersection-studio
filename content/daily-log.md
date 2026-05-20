@@ -2,6 +2,25 @@
 
 ---
 
+## 2026-05-20
+
+- No commits today — 14-day quiet period; studio has not had a code change since May 6 was logged (last actual commit was April 20)
+- **Studio Dashboard** remains the only active project; Co-Work Mode (CopilotKit + AG-UI) is the last shipped feature, now 30 days without validation in practice
+- `useCoAgent` shared state research remains deferred — flagged as next task in the April 20 commit; no progress for 5 weeks
+- **Canvas Copilot** (TLDraw spatial visualization) ship/kill decision still outstanding — prototype has sat uncommitted for over a month
+- **Fly.io blocker persists:** HMAC replay protection and prompt injection hardening (P1 security) remain frozen behind Mastra backend deployment — now 8+ weeks unresolved
+- **P2 backlog unchanged:** dead-letter queue, TOCTOU fix, thread compaction, correlation IDs — all open in TODOS.md
+- **MKE Dashboard:** Housing tab split, Hmong translation review, and deployment decision all still open; no movement
+- April 14 and April 20 LinkedIn drafts remain unpublished — now 5–6 weeks old; content is definitively stale and should be archived rather than published as-is
+- Portfolio holds at 20 shipped products; no new projects in schematic or research phase
+
+**Items needing attention:**
+- Fly.io / Mastra deployment is the studio's longest-standing blocker (8+ weeks) — a decision to deploy or formally deprioritize is overdue; all P1 security work is frozen behind it
+- 30-day coding pause warrants a direction reset: is the next move Studio Dashboard hardening, `useCoAgent` research, MKE deployment, or starting a new project?
+- April social drafts should be archived — they won't land the same way published now; if the sprint is worth writing about, a fresh post with current framing would serve better
+
+---
+
 ## 2026-05-19
 
 - No commits today — 13-day quiet period since the May 6 log; longest gap in studio history
