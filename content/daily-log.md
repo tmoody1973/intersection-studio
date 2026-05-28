@@ -2,6 +2,25 @@
 
 ---
 
+## 2026-05-28
+
+- No commits today — 38 consecutive days without a code change; last active sprint ended April 20 (Co-Work Mode, 13 commits)
+- **Studio Dashboard** status unchanged: Co-Work Mode (CopilotKit + AG-UI) functional and committed; no real-use validation documented after 5+ weeks idle
+- `useCoAgent` shared state research remains deferred — flagged as the next task since April 20; no movement for 38 days
+- **Canvas Copilot** (TLDraw spatial visualization) ship/kill decision still unresolved — prototype committed, no direction set for 5+ weeks
+- **Fly.io / Mastra backend blocker at 10+ weeks:** HMAC replay protection and prompt injection hardening (P1 security) still frozen; both tasks explicitly gated on a Fly.io deployment that has not happened
+- **P2 backlog frozen:** dead-letter queue, TOCTOU fix, thread compaction, correlation IDs — all open in TODOS.md, unchanged for 10+ weeks
+- **MKE Dashboard:** Housing tab IA decision, Hmong translation review, and deployment milestone remain open; no progress
+- Social draft backlog (LinkedIn + X from April) is 5–7 weeks stale — archive, not publish
+- Portfolio holds at 20 shipped products; no projects in research or schematic phase
+
+**Items needing attention:**
+- 38-day coding pause is the studio's longest inactive stretch; a direction decision is overdue — Studio Dashboard hardening, `useCoAgent` research, MKE deployment, or net-new project
+- Fly.io / Mastra is the studio's longest open blocker (10+ weeks); deploy or formally park it to unblock the entire P1 security backlog
+- Archive April social drafts; next content should be tied to something shipped
+
+---
+
 ## 2026-05-27
 
 - No commits today — 37 consecutive days without a code change; last active sprint ended April 20 (Co-Work Mode, 13 commits)
