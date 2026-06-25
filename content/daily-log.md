@@ -2,6 +2,25 @@
 
 ---
 
+## 2026-06-25
+
+- No commits today — **66 consecutive days** without a code change; last active sprint ended April 20 (Co-Work Mode, 13 commits)
+- Only activity in last 24 hours: automated daily log entry (`chore: daily studio log 2026-06-24`) — no human-initiated work
+- **Studio Dashboard** status unchanged: Co-Work Mode (CopilotKit + AG-UI) functional and committed; no real-use session documented after 9+ weeks idle
+- `useCoAgent` shared state research remains deferred — queued as next task since April 20; no movement in 66 days
+- **Canvas Copilot** (TLDraw spatial visualization) ship/kill decision still open — prototype sits committed, no direction set for 9+ weeks
+- **Fly.io / Mastra backend blocker at 15+ weeks:** HMAC replay protection and prompt injection hardening (P1 security) gated on a Fly.io deploy that has not happened
+- **P2 backlog frozen:** dead-letter queue, TOCTOU fix, thread compaction, correlation IDs — all open in TODOS.md, unchanged since mid-April
+- **MKE Dashboard:** Housing tab IA decision, Hmong translation QA, and first deployment remain open; no progress since April 5
+- Portfolio holds at 20 shipped products; no projects in research or schematic phase
+
+**Items needing attention:**
+- 66-day mark — the Fly.io / Mastra deploy-or-park decision remains the single highest-leverage call; the infra debt is now in its fourth month with no resolution
+- `useCoAgent` research is still the lowest-friction re-entry point if the infra decision stays deferred
+- No social content warranted until something ships
+
+---
+
 ## 2026-06-24
 
 - No commits today — **65 consecutive days** without a code change; last active sprint ended April 20 (Co-Work Mode, 13 commits)
