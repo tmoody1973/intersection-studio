@@ -2,6 +2,24 @@
 
 ---
 
+## 2026-08-07
+
+- **109 consecutive days** without a human-initiated code change — last active sprint ended April 20
+- Only commit in last 24 hours: `0fe4dec chore: daily studio log 2026-08-06` — automated log entry only, no new work
+- Weekly newsletter draft (`content/newsletter/draft-2026-07-31.md`) remains unpublished — now 7 days stale
+- **Studio Dashboard** (`projects/studio-dashboard`): Co-Work Mode (CopilotKit + AG-UI) functional; `useCoAgent` research still not started
+- **Canvas Copilot** ship/kill decision remains open — TLDraw prototype committed and idle for 32 weeks
+- **Mastra Agents** (`projects/mastra-agents`): P1 security items (HMAC replay protection, prompt injection hardening) still blocked on Fly.io deploy
+- **MKE Dashboard** (`projects/mke-dashboard`): demo-ready, undeployed; Housing tab IA decision, Hmong translation QA, and Vercel deployment remain open
+- Social queue: last human-authored post was April 20 (`content/social/linkedin-2026-04-20.md`); 109 days since
+
+**Highest-value unblocked actions (unchanged):**
+1. Deploy MKE Dashboard to Vercel — fully unblocked, highest visible impact
+2. Publish the newsletter draft — written and sitting idle for 7 days
+3. Make ship/kill call on Canvas Copilot — one decision closes a 32-week open loop
+
+---
+
 ## 2026-08-06
 
 - **108 consecutive days** without a human-initiated code change — last active sprint ended April 20
