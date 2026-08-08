@@ -2,6 +2,26 @@
 
 ---
 
+## 2026-08-08
+
+- **110 consecutive days** without a human-initiated code change — last active sprint ended April 20
+- Two commits in last 24 hours: `82f8d87 content: weekly newsletter draft 2026-08-07` and `6a8822c chore: daily studio log 2026-08-07`
+- New weekly newsletter drafted: `content/newsletter/draft-2026-08-07.md` (67 lines) — a meta-piece for the week of August 1 that names a second-order pattern: the newsletter about dormancy got dormant too
+- Newsletter frames the problem clearly: the studio has a shipping bottleneck, not a building one — MKE Dashboard is built, Canvas Copilot runs, prior newsletter was written; none of them crossed the finish line
+- Prior newsletter (`draft-2026-07-31.md`) remains unpublished — now 8 days stale; new draft also uncommitted to any distribution channel
+- **Studio Dashboard** (`projects/studio-dashboard`): Co-Work Mode (CopilotKit + AG-UI) functional; `useCoAgent` research still not started
+- **Canvas Copilot** ship/kill decision open — TLDraw prototype committed and idle for 33 weeks
+- **Mastra Agents** (`projects/mastra-agents`): P1 security items (HMAC replay protection, prompt injection hardening) still blocked on Fly.io deploy
+- **MKE Dashboard** (`projects/mke-dashboard`): demo-ready, undeployed; Housing tab IA decision, Hmong translation QA, and Vercel deployment remain open
+- Social queue: last human-authored post was April 20 (`content/social/linkedin-2026-04-20.md`); 110 days since; no posts today — newsletter is a draft, not published
+
+**Highest-value unblocked actions (unchanged):**
+1. Deploy MKE Dashboard to Vercel — fully unblocked, highest visible impact
+2. Publish the newsletters — two are written and sitting idle; one action publishes both
+3. Make ship/kill call on Canvas Copilot — one decision closes a 33-week open loop
+
+---
+
 ## 2026-08-07
 
 - **109 consecutive days** without a human-initiated code change — last active sprint ended April 20
