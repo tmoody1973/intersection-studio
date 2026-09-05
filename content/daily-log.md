@@ -2,6 +2,26 @@
 
 ---
 
+## 2026-09-05
+
+- **138 consecutive days** without a human-initiated code change — last active sprint ended April 20
+- Two commits in last 24 hours: `31f0b15 content: weekly newsletter draft 2026-09-04` and `61adaeb chore: daily studio log 2026-09-04`
+- Fourth weekly newsletter drafted: `content/newsletter/draft-2026-09-04.md` (68 lines) — the most structurally different draft yet; introduces a "deep dive" section; uses the radio concept of dead air as a frame for what 4.5 months of public silence communicates; names that the signal's been off and the content is ready
+- Notable shift in newsletter tone: prior drafts named the problem; this one names what comes next and explicitly frames September as the open question — "The only interesting question is what September looks like"
+- **Four unpublished newsletter drafts now in queue:** `draft-2026-07-31.md` (36 days stale), `draft-2026-08-07.md` (29 days stale), `draft-2026-08-14.md` (22 days stale), `draft-2026-09-04.md` (1 day old) — all complete, none distributed
+- **Studio Dashboard** (`projects/studio-dashboard`): Co-Work Mode (CopilotKit + AG-UI) functional; `useCoAgent` research still not started
+- **Canvas Copilot** ship/kill decision open — TLDraw prototype committed and idle for 46+ weeks
+- **Mastra Agents** (`projects/mastra-agents`): P1 security items (HMAC replay protection, prompt injection hardening) blocked on Fly.io deploy — no change
+- **MKE Dashboard** (`projects/mke-dashboard`): demo-ready, undeployed; Housing tab IA decision, Hmong translation QA, and Vercel deployment remain open
+- Social queue: last human-authored post was April 20; 138 days since; no posts today — newsletter drafts exist, none published
+
+**Highest-value unblocked actions (unchanged):**
+1. Deploy MKE Dashboard to Vercel — fully unblocked, highest visible impact
+2. Publish the newsletter drafts — four written, zero distributed; oldest 36 days stale
+3. Make ship/kill call on Canvas Copilot — one decision closes a 46-week open loop
+
+---
+
 ## 2026-09-04
 
 - **137 consecutive days** without a human-initiated code change — last active sprint ended April 20
