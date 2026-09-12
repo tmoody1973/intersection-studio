@@ -2,6 +2,24 @@
 
 ---
 
+## 2026-09-12
+
+- **145 consecutive days** without a human-initiated code change — last active sprint ended April 20
+- Only commit in last 24 hours: `329e03b chore: daily studio log 2026-09-11` — automated log entry only, no new work
+- **Studio Dashboard** live at `studio-dashboard-eta.vercel.app` — 5 Mastra agents, CopilotKit AG-UI streaming, Convex + Neon pgvector; no changes since launch
+- **Mastra agents** running at `intersection-mastra.fly.dev/health`; P1 security items (HMAC replay protection, prompt injection hardening) remain open and unaddressed
+- **Newsletter queue: 4 unshipped drafts** — `draft-2026-07-31.md` (43 days stale), `draft-2026-08-07.md` (36 days stale), `draft-2026-08-14.md` (29 days stale), `draft-2026-09-04.md` (8 days old) — all written, none distributed
+- **MKE Dashboard** (`projects/mke-dashboard`): demo-ready prototype with 30+ data points/neighborhood, 7 map layers, 4-language i18n, HOLC redlining overlay — Vercel deployment fully unblocked, still undeployed
+- **Canvas Copilot**: TLDraw prototype idle ~50 weeks; ship/kill decision still unmade, now past the one-year mark
+- No social posts — nothing new shipped today
+
+**Highest-value unblocked actions (unchanged for 3+ months):**
+1. Publish newsletter drafts — four written, zero distributed; oldest now 43 days stale
+2. Deploy MKE Dashboard to Vercel — fully unblocked, highest civic visibility in the portfolio
+3. Make ship/kill call on Canvas Copilot — past the one-year idle mark; carrying it costs attention
+
+---
+
 ## 2026-09-11
 
 - **144 consecutive days** without a human-initiated code change — last active sprint ended April 20
