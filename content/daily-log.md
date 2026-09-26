@@ -2,6 +2,26 @@
 
 ---
 
+## 2026-09-26
+
+- **159 consecutive days** without a human-initiated code change — last active sprint ended April 20
+- Two automated commits in last 24 hours, both newsletter work: `draft-2026-09-25.md` created then revised
+- **Newsletter draft #6 written** (`content/newsletter/draft-2026-09-25.md`) — 55 lines, covers: 7 auto log entries, 6 consecutive drafts, studio dormancy pattern, MKE Dashboard window-of-opportunity framing, Canvas Copilot now in year two, Mastra P1 security debt now 22+ weeks outstanding
+- Draft was revised once: security section tightened, infrastructure specifics removed — the civic/cultural responsibility framing kept intact
+- **Newsletter queue: 6 unshipped drafts** — `draft-2026-07-31.md` (57 days stale), `draft-2026-08-07.md` (50 days stale), `draft-2026-08-14.md` (43 days stale), `draft-2026-09-04.md` (22 days stale), `draft-2026-09-18.md` (8 days old), `draft-2026-09-25.md` (1 day old)
+- **Studio Dashboard** live at `studio-dashboard-eta.vercel.app` — no changes since launch
+- **Mastra agents** at `intersection-mastra.fly.dev/health` — P1 security items (HMAC replay protection, prompt injection hardening) open 22+ weeks; noted in new newsletter draft as a distinct risk category from the deployment/shipping blockers
+- **MKE Dashboard** — fully unblocked, fully undeployed; new draft explicitly names the window-of-opportunity cost: a neighborhood dashboard built in 2026 lands differently if launched in 2027
+- **Canvas Copilot** — now explicitly in year two per the new draft; ship/kill/open-source call still unmade
+- No social posts — a 6th unshipped newsletter is not a shipping event
+
+**Highest-value unblocked actions (unchanged for 3+ months):**
+1. Publish any newsletter draft — 6 written, 0 distributed; oldest 57 days stale
+2. Deploy MKE Dashboard to Vercel — one `vercel deploy` from real
+3. Make the Canvas Copilot call — ship, kill, or open-source; year three makes it a timestamp, not a story
+
+---
+
 ## 2026-09-25
 
 - **158 consecutive days** without a human-initiated code change — last active sprint ended April 20
