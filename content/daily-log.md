@@ -2,6 +2,24 @@
 
 ---
 
+## 2026-10-17
+
+- **180 consecutive days** without a human-initiated code change — studio dormancy continues
+- **Newsletter draft published** (`content/newsletter/draft-2026-10-16.md`) — week of October 10; draft nine; strong, honest piece on the gap between "healthy" and "secure"
+- Newsletter draft focuses on Mastra P1 vulnerabilities: HMAC replay protection and prompt injection hardening open for 38 weeks — frames security debt as present-tense exposure, not future-tense inconvenience
+- **Newsletter queue: 9 unshipped drafts** — oldest (`draft-2026-07-31.md`) now 78 days stale; zero have been distributed
+- **Mastra agents** remain live with known P1 vulnerabilities — 38 weeks open; transmitter running unsecured (per newsletter's own framing)
+- **MKE Dashboard** still undeployed — 180 days since demo-ready; 30+ data points, 7 map layers, 4-language support; civic relevance window continues to narrow
+- **Canvas Copilot** — no ship/kill/open-source decision; no change
+- No social posts — no shipped product; newsletter draft is not yet distributed
+
+**Items needing attention:**
+1. Publish a newsletter — nine are written, zero sent; the July 31 draft remains accurate and 78 days stale
+2. Deploy MKE Dashboard to Vercel — one command away, still not done
+3. Address Mastra P1 security items — 38 weeks is not a backlog item; it's a liability
+
+---
+
 ## 2026-10-16
 
 - **179 consecutive days** without a human-initiated code change — last active sprint ended April 20
