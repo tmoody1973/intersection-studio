@@ -2,6 +2,24 @@
 
 ---
 
+## 2026-10-24
+
+- **187 consecutive days** without a human-initiated code change — studio dormancy continues
+- `56cb463 content: weekly newsletter draft 2026-10-23` — Draft 10 written; angle: ten newsletters written by automation, zero sent; examines the structural missing step between production and distribution
+- Newsletter draft is the most self-aware one yet — directly names the loop failure and calls out what it would take to fix it: "treat 'send the newsletter' as a task with an owner and a deadline"
+- **Newsletter queue: 10 unshipped drafts** — oldest (`draft-2026-07-31.md`) now 85 days stale; none distributed
+- **Mastra agents** live at `intersection-mastra.fly.dev` with P1 vulnerabilities open **44 weeks** — HMAC replay protection and prompt injection hardening still unaddressed
+- **MKE Dashboard** undeployed at 187 days — 30+ data points, 7 map layers, 4-language support; civic relevance window narrowing; Vercel deploy remains one command away
+- **Canvas Copilot** — no ship/kill/open-source decision; no change
+- No social posts — nothing shipped, only produced
+
+**Items needing attention:**
+1. Publish a newsletter — ten written, zero sent; Draft 10 (Oct 23) is the strongest case for why this matters
+2. Deploy MKE Dashboard to Vercel — overdue by six months
+3. Mastra P1 security items — 44 weeks open; live system with known P1s
+
+---
+
 ## 2026-10-23
 
 - **186 consecutive days** without a human-initiated code change — studio dormancy continues
