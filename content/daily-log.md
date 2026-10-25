@@ -2,6 +2,24 @@
 
 ---
 
+## 2026-10-25
+
+- **188 consecutive days** without a human-initiated code change — studio dormancy continues
+- Only activity in the last 24 hours: `cbf97f6 chore: daily studio log 2026-10-24` (automated)
+- **Newsletter queue: 10 unshipped drafts** — oldest (`draft-2026-07-31.md`) now 86 days stale; `draft-2026-10-23.md` is the newest; none distributed
+- **Mastra agents** live at `intersection-mastra.fly.dev` with P1 vulnerabilities open **45 weeks** — HMAC replay protection and prompt injection hardening still unaddressed
+- **MKE Dashboard** undeployed at 188 days — 30+ data points, 7 map layers, 4-language support; civic relevance window narrowing; one Vercel command away
+- **Canvas Copilot** — no ship/kill/open-source decision; no change
+- No social posts — nothing shipped
+
+**Items needing attention:**
+1. Publish a newsletter — ten written, zero sent; `draft-2026-10-23.md` calls out the loop failure directly; send it
+2. Deploy MKE Dashboard to Vercel — 188 days overdue
+3. Mastra P1 security items — 45 weeks open on a live system
+
+---
+
+
 ## 2026-10-24
 
 - **187 consecutive days** without a human-initiated code change — studio dormancy continues
