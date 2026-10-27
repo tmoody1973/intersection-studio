@@ -2,6 +2,22 @@
 
 ---
 
+## 2026-10-27
+
+- **190 consecutive days** without a human-initiated code change — studio dormancy continues
+- Only activity in the last 24 hours: `b1d0faa chore: daily studio log 2026-10-26` (automated)
+- **Newsletter queue: 10 unshipped drafts** — oldest (`draft-2026-07-31.md`) now 88 days stale; none distributed; the most recent (`draft-2026-10-23.md`) directly names the distribution failure
+- **Mastra agents** live at `intersection-mastra.fly.dev` with P1 vulnerabilities open **47 weeks** — HMAC replay protection and prompt injection hardening still unaddressed on a live production system
+- **MKE Dashboard** undeployed at 190 days — 30+ data points, 7 map layers, 4-language support; one `vercel deploy` from live
+- No code changes, no deploys, no social posts — nothing shipped
+
+**Items needing attention:**
+1. Send a newsletter — ten written, zero sent; `draft-2026-10-23.md` is ready to go and calls out this exact problem
+2. Deploy MKE Dashboard — 190 days since build complete; Vercel deploy is one command
+3. Mastra P1 security — 47 weeks on a live system; HMAC replay and prompt injection are the open items
+
+---
+
 ## 2026-10-26
 
 - **189 consecutive days** without a human-initiated code change — studio dormancy continues
