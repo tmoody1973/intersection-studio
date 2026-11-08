@@ -2,6 +2,24 @@
 
 ---
 
+## 2026-11-08
+
+- **Detached HEAD recurred again** — session started with HEAD detached from `refs/heads/main`; yesterday's log commit (0c9efc9) stranded; recovered via cherry-pick onto `main` (this is the 3rd+ consecutive week this repeats)
+- Only commit in last 24 hours: `0c9efc9 chore: daily studio log 2026-11-07` — automated log only, no new work
+- No new code, features, deploys, docs, or social posts from any project
+- **Newsletter queue: 12 drafts, 0 sent** — `draft-2026-11-06.md` is the latest; `draft-2026-10-30.md` still flagged distribution-ready; zero have reached an audience
+- **Mastra agents** at `intersection-mastra.fly.dev` — P1 security issues (HMAC replay, prompt injection) now open **57 weeks** on a live system
+- **MKE Dashboard** undeployed at **201 days** post-build — Milwaukee Spring 2027 elections ~4 months out; window narrows
+- **201 consecutive days** without a human-initiated code change — only automated daily logs committing since April 2026
+
+**Items needing attention:**
+1. **Fix detached HEAD automation** — this is the dominant recurring failure; every session starts detached and requires cherry-pick recovery; root cause in the scheduled run environment is unresolved
+2. **Mastra P1 security** — 57 weeks on a live system; HMAC replay and prompt injection are active risks
+3. **Deploy MKE Dashboard** — 201 days post-build; one `vercel deploy` away from live
+4. **Send the newsletter** — 12 drafts written, 0 distributed; content is there, audience isn't getting it
+
+---
+
 ## 2026-11-07
 
 - Two commits landed in the last 24 hours: daily log 2026-11-06 and weekly newsletter draft 2026-11-06
