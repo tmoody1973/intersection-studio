@@ -2,6 +2,25 @@
 
 ---
 
+## 2026-11-13
+
+- **No detached HEAD this session** — first time in weeks the automated session started cleanly on `main`; worth noting as a possible improvement in the environment
+- Only commit in last 24 hours: `33e0b65 chore: daily studio log 2026-11-12` — automated log only, no new work
+- No new code, features, deploys, docs, or social posts from any project
+- **Newsletter queue: 12 drafts, 0 sent** — oldest unsent draft is from October 9; `draft-2026-10-30.md` flagged distribution-ready over two weeks ago; content exists but no audience is seeing it
+- **Mastra agents** at `intersection-mastra.fly.dev` — P1 security issues (HMAC replay, prompt injection) now open **62 weeks** on a live system
+- **MKE Dashboard** undeployed at **206 days** post-build — Milwaukee Spring 2027 elections approaching; window to ship before they matter is narrowing
+- **206 consecutive days** without a human-initiated code change — only automated daily logs committing since April 2026
+- Studio dashboard project has active components (CoWork, BrainCard, ArtifactPanel, CostDashboard, etc.) that appear built but no deployment evidence found
+
+**Items needing attention:**
+1. **Send the newsletter** — 12 drafts written, 0 distributed; `draft-2026-10-30.md` is ready; nothing technical blocking this
+2. **Mastra P1 security** — 62 weeks on a live system; HMAC replay and prompt injection remain active risks
+3. **Deploy MKE Dashboard** — 206 days post-build; one deploy command from live before elections
+4. **Engage with studio dashboard** — components suggest real work was done; unclear if it's running/deployed anywhere
+
+---
+
 ## 2026-11-12
 
 - **Detached HEAD recurred again** — session started with HEAD detached from `refs/heads/main`; five commits (Nov 7–11 daily logs) stranded; recovered via cherry-pick onto `main` (this pattern has now recurred every single session for weeks; root cause unresolved)
